@@ -1,15 +1,15 @@
 import time
-import numpy as np
 
-def OnMultNumpy():
+# TODO - Change the code to not use numpy and reflect the one in the cpp file
+def OnMult():
     size = int(input("Enter the size of the matrix: "))
     start = time.time()
     matrix1 = [[1 for _ in range(size)] for _ in range(size)]
     matrix2 = [[i+1 for _ in range(size)] for i in range(size)]
-    np.matmul(matrix1, matrix2)
     end = time.time()
     print("Time taken: ", end - start)
 
+# TODO - Use single list instead of list of lists
 def OnMultLine():
     size = int(input("Enter the size of the matrix: "))
     start = time.time()
@@ -23,6 +23,7 @@ def OnMultLine():
     end = time.time()
     print("Time taken: ", end - start)
 
+# TODO - Use single list instead of list of lists 
 def OnMultBlock():
     size = int(input("Enter the size of the matrix: "))
     block_size = int(input("Enter the block size: "))
@@ -47,7 +48,7 @@ if __name__ == "__main__":
     t = int(input("Enter the type of computation: "))
     match t:
         case 1:
-            OnMultNumpy()
+            OnMult()
         case 2:
             OnMultLine()
         case 3:
