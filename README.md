@@ -1,3 +1,3 @@
-# Compilação Paralela e Distribuída
+# Computação Paralela e Distribuída
 
-Este repositório contém exercícios e apontamentos da cadeira de Compilação Paralela e Distribuída
+Este repositório contém exercícios e apontamentos da cadeira de Computação Paralela e Distribuída
