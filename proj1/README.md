@@ -11,10 +11,11 @@
 For matrices of size 600x600:
 
 - C++: 0.187 seconds
-- Python: 16.22 seconds
+- Python: 0.231 seconds
 
 ### 3000x3000
 
 For matrices of size 3000x3000:
 
 - C++: 117.782 seconds
+- Python: 39.563 seconds
