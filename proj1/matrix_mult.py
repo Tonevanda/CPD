@@ -1,3 +1,5 @@
+import time
+
 def matrix_multiplication(matrix1, matrix2):
     rows1 = len(matrix1)
     cols1 = len(matrix1[0])
@@ -5,7 +7,6 @@ def matrix_multiplication(matrix1, matrix2):
     cols2 = len(matrix2[0])
 
     if cols1 != rows2:
-        print("Cannot multiply matrices. Number of columns in the first matrix must be equal to the number of rows in the second matrix.")
         return None
 
     result = [[0 for _ in range(cols2)] for _ in range(rows1)]
@@ -17,7 +18,11 @@ def matrix_multiplication(matrix1, matrix2):
 
     return result
 
-if __name__ == "main":
-    matrix1 = [[1, 2, 3], [4, 5, 6]]
-    matrix2 = [[7, 8], [9, 10], [11, 12]]
+if __name__ == "__main__":
+    start = time.time()
+    size = int(input("Enter the size of the matrix: "))
+    matrix1 = [[1 for _ in range(size)] for _ in range(size)]
+    matrix2 = [[i+1 for _ in range(size)] for i in range(size)]
     print(matrix_multiplication(matrix1, matrix2))
+    end = time.time()
+    print("Time taken: ", end - start)
