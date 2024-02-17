@@ -1,13 +1,25 @@
 import time
 
-# TODO - Change the code to not use numpy and reflect the one in the cpp file
 def OnMult():
     size = int(input("Enter the size of the matrix: "))
+
+
+    pha = [1 for _ in range(size*size)]
+    phb = [(i+1) for i in range(size) for j in range(size)]
+    phc = [0 for _ in range(size*size)]
+
     start = time.time()
-    matrix1 = [[1 for _ in range(size)] for _ in range(size)]
-    matrix2 = [[i+1 for _ in range(size)] for i in range(size)]
+
+    for i in range(size):
+        for j in range(size):
+            temp = 0
+            for k in range(size):
+                temp += pha[i*size+k] * phb[k*size+j]
+            phc[i*size+j] = temp
+
     end = time.time()
     print("Time taken: ", end - start)
+    print("Result matrix: ", phc[:10])
 
 # TODO - Use single list instead of list of lists
 def OnMultLine():
@@ -23,24 +35,6 @@ def OnMultLine():
     end = time.time()
     print("Time taken: ", end - start)
 
-# TODO - Use single list instead of list of lists 
-def OnMultBlock():
-    size = int(input("Enter the size of the matrix: "))
-    block_size = int(input("Enter the block size: "))
-    start = time.time()
-    matrix1 = [[1 for _ in range(size)] for _ in range(size)]
-    matrix2 = [[i+1 for _ in range(size)] for i in range(size)]
-    result = [[0 for _ in range(size)] for _ in range(size)]
-    for i in range(0, size, block_size):
-        for j in range(0, size, block_size):
-            for k in range(0, size, block_size):
-                for ii in range(i, min(i+block_size, size)):
-                    for jj in range(j, min(j+block_size, size)):
-                        for kk in range(k, min(k+block_size, size)):
-                            result[ii][jj] += matrix1[ii][kk] * matrix2[kk][jj]
-    end = time.time()
-    print("Time taken: ", end - start)
-
 if __name__ == "__main__":
     print("1. Multiplication")
     print("2. Line Multiplication")
@@ -51,7 +45,5 @@ if __name__ == "__main__":
             OnMult()
         case 2:
             OnMultLine()
-        case 3:
-            OnMultBlock()
         case _:
             print("Invalid input")
