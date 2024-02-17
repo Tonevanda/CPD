@@ -34,7 +34,6 @@ class MatrixMultiplication
         double[] phb = new double[size * size];
         double[] phc = new double[size * size];
 
-        // Initialize matrices pha and phb
         for (int i = 0; i < size; i++){
             for(int j = 0; j < size; j++){
                 pha[i*size + j] = (double)1.0;
@@ -51,7 +50,6 @@ class MatrixMultiplication
 
         double temp;
 
-        // Perform matrix multiplication
         for (int i = 0; i < size; i++){
             for (int j = 0; j < size; j++){
                 temp = 0;
@@ -65,7 +63,6 @@ class MatrixMultiplication
         DateTime end = DateTime.Now;
         TimeSpan duration = end - start;
 
-        // Output the result and time taken
         Console.WriteLine("Time taken: " + duration.TotalSeconds + " seconds");
         Console.WriteLine("Result matrix:");
         for(int i = 0; i<1; i++){	
@@ -76,8 +73,51 @@ class MatrixMultiplication
     }
 
     static void OnLineMult(){
-        Console.WriteLine("Enter the size of the matrix: ");
-        Console.WriteLine("TODO");
+        Console.Write("Enter the size of the matrix: ");
+        int size = Convert.ToInt32(Console.ReadLine());
+
+        double[] pha = new double[size * size];
+        double[] phb = new double[size * size];
+        double[] phc = new double[size * size];
+
+        for (int i = 0; i < size; i++){
+            for(int j = 0; j < size; j++){
+                pha[i*size + j] = (double)1.0;
+            }
+        }
+
+        for (int i = 0; i < size; i++){
+            for(int j = 0; j < size; j++){
+                phb[i*size + j] = (double)(i+1);
+            }
+        }
+
+        for (int i = 0; i < size; i++){
+            for(int j = 0; j < size; j++){
+                phc[i*size + j] = (double)0.0;
+            }
+        }
+
+        DateTime start = DateTime.Now;
+
+        for (int i = 0; i < size; i++){
+            for (int k = 0; k < size; k++){
+                for (int j = 0; j < size; j++){
+                    phc[i*size + j] += pha[i*size + k] * phb[k*size + j];
+                }
+            }
+        }
+
+        DateTime end = DateTime.Now;
+        TimeSpan duration = end - start;
+
+        Console.WriteLine("Time taken: " + duration.TotalSeconds + " seconds");
+        Console.WriteLine("Result matrix:");
+        for(int i = 0; i<1; i++){	
+            for(int j = 0; j<Math.Min(10,size); j++)
+                Console.Write(phc[j] + " ");
+        }
+        Console.WriteLine();
     }
 
     static void OnBlockMult(){
