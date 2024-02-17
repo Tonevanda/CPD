@@ -6,19 +6,20 @@ class MatrixMultiplication
     {
         Console.WriteLine("1.Multiplication");
         Console.WriteLine("2.Line Multiplication");
-        Console.WriteLine("3.Block Multiplication");
+        Console.WriteLine("Selection?: ");
 
         int choice = Convert.ToInt32(Console.ReadLine());
 
+        Console.WriteLine("Dimensions: lins=cols ? ");
+        int lins = Convert.ToInt32(Console.ReadLine());
+        int cols = lins;
+
         switch(choice){
             case 1:
-                OnMult();
+                OnMult(lins,cols);
                 break;
             case 2:
-                OnLineMult();
-                break;
-            case 3:
-                OnBlockMult();
+                OnLineMult(lins,cols);
                 break;
             default:
                 Console.WriteLine("Invalid choice");
@@ -26,23 +27,21 @@ class MatrixMultiplication
         }
     }
 
-    static void OnMult(){
-        Console.Write("Enter the size of the matrix: ");
-        int size = Convert.ToInt32(Console.ReadLine());
+    static void OnMult(int lins, int cols){
 
-        double[] pha = new double[size * size];
-        double[] phb = new double[size * size];
-        double[] phc = new double[size * size];
+        double[] pha = new double[lins * cols];
+        double[] phb = new double[lins * cols];
+        double[] phc = new double[lins * cols];
 
-        for (int i = 0; i < size; i++){
-            for(int j = 0; j < size; j++){
-                pha[i*size + j] = (double)1.0;
+        for (int i = 0; i < lins; i++){
+            for(int j = 0; j < cols; j++){
+                pha[i*lins + j] = (double)1.0;
             }
         }
 
-        for (int i = 0; i < size; i++){
-            for(int j = 0; j < size; j++){
-                phb[i*size + j] = (double)(i+1);
+        for (int i = 0; i < lins; i++){
+            for(int j = 0; j < cols; j++){
+                phb[i*cols + j] = (double)(i+1);
             }
         }
 
@@ -50,13 +49,13 @@ class MatrixMultiplication
 
         double temp;
 
-        for (int i = 0; i < size; i++){
-            for (int j = 0; j < size; j++){
+        for (int i = 0; i < lins; i++){
+            for (int j = 0; j < cols; j++){
                 temp = 0;
-                for (int k = 0; k < size; k++){
-                    temp += pha[i*size + k] * phb[k*size + j];
+                for (int k = 0; k < lins; k++){
+                    temp += pha[i*lins + k] * phb[k*cols + j];
                 }
-                phc[i*size + j] = temp;
+                phc[i*lins + j] = temp;
             }
         }
 
@@ -66,44 +65,42 @@ class MatrixMultiplication
         Console.WriteLine("Time taken: " + duration.TotalSeconds + " seconds");
         Console.WriteLine("Result matrix:");
         for(int i = 0; i<1; i++){	
-            for(int j = 0; j<Math.Min(10,size); j++)
+            for(int j = 0; j<Math.Min(10,cols); j++)
                 Console.Write(phc[j] + " ");
         }
         Console.WriteLine();
     }
 
-    static void OnLineMult(){
-        Console.Write("Enter the size of the matrix: ");
-        int size = Convert.ToInt32(Console.ReadLine());
+    static void OnLineMult(int lins, int cols){
 
-        double[] pha = new double[size * size];
-        double[] phb = new double[size * size];
-        double[] phc = new double[size * size];
+        double[] pha = new double[lins * cols];
+        double[] phb = new double[lins * cols];
+        double[] phc = new double[lins * cols];
 
-        for (int i = 0; i < size; i++){
-            for(int j = 0; j < size; j++){
-                pha[i*size + j] = (double)1.0;
+        for (int i = 0; i < lins; i++){
+            for(int j = 0; j < cols; j++){
+                pha[i*lins + j] = (double)1.0;
             }
         }
 
-        for (int i = 0; i < size; i++){
-            for(int j = 0; j < size; j++){
-                phb[i*size + j] = (double)(i+1);
+        for (int i = 0; i < lins; i++){
+            for(int j = 0; j < cols; j++){
+                phb[i*cols + j] = (double)(i+1);
             }
         }
 
-        for (int i = 0; i < size; i++){
-            for(int j = 0; j < size; j++){
-                phc[i*size + j] = (double)0.0;
+        for (int i = 0; i < lins; i++){
+            for(int j = 0; j < cols; j++){
+                phc[i*lins + j] = (double)0.0;
             }
         }
 
         DateTime start = DateTime.Now;
 
-        for (int i = 0; i < size; i++){
-            for (int k = 0; k < size; k++){
-                for (int j = 0; j < size; j++){
-                    phc[i*size + j] += pha[i*size + k] * phb[k*size + j];
+        for (int i = 0; i < lins; i++){
+            for (int k = 0; k < lins; k++){
+                for (int j = 0; j < cols; j++){
+                    phc[i*lins + j] += pha[i*lins + k] * phb[k*cols + j];
                 }
             }
         }
@@ -114,14 +111,9 @@ class MatrixMultiplication
         Console.WriteLine("Time taken: " + duration.TotalSeconds + " seconds");
         Console.WriteLine("Result matrix:");
         for(int i = 0; i<1; i++){	
-            for(int j = 0; j<Math.Min(10,size); j++)
+            for(int j = 0; j<Math.Min(10,cols); j++)
                 Console.Write(phc[j] + " ");
         }
         Console.WriteLine();
-    }
-
-    static void OnBlockMult(){
-        Console.WriteLine("Enter the size of the matrix: ");
-        Console.WriteLine("TODO");
     }
 }
