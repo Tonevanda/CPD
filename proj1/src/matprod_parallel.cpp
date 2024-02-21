@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <time.h>
 #include <cstdlib>
-//#include <papi.h>
+#include <papi.h>
 #include <omp.h>
 
 using namespace std;
@@ -140,7 +140,6 @@ int main (int argc, char *argv[])
 	int lin, col, blockSize;
 	int op;
 	
-    /* PAPI_COMMENT
 	int EventSet = PAPI_NULL;
   	long long values[2];
   	int ret;
@@ -161,7 +160,7 @@ int main (int argc, char *argv[])
 
 	ret = PAPI_add_event(EventSet,PAPI_L2_DCM);
 	if (ret != PAPI_OK) cout << "ERROR: PAPI_L2_DCM" << endl;
-    */
+    
 
 	op=1;
 	do {
@@ -178,10 +177,9 @@ int main (int argc, char *argv[])
 
 		// Start counting
 
-		/* PAPI_COMMENT
         ret = PAPI_start(EventSet);
 		if (ret != PAPI_OK) cout << "ERROR: Start PAPI" << endl;
-        */
+        
 
 		switch (op){
 			case 1:
@@ -195,7 +193,6 @@ int main (int argc, char *argv[])
                 break;
 		}
 
-        /* PAPI_COMMENT
   		ret = PAPI_stop(EventSet, values);
   		if (ret != PAPI_OK) cout << "ERROR: Stop PAPI" << endl;
   		printf("L1 DCM: %lld \n",values[0]);
@@ -204,12 +201,10 @@ int main (int argc, char *argv[])
 		ret = PAPI_reset( EventSet );
 		if ( ret != PAPI_OK )
 			std::cout << "FAIL reset" << endl; 
-        */
 
 
 	}while (op != 0);
 
-    /* PAPI_COMMENT
 	ret = PAPI_remove_event( EventSet, PAPI_L1_DCM );
 	if ( ret != PAPI_OK )
 		std::cout << "FAIL remove event" << endl; 
@@ -221,5 +216,4 @@ int main (int argc, char *argv[])
 	ret = PAPI_destroy_eventset( &EventSet );
 	if ( ret != PAPI_OK )
 		std::cout << "FAIL destroy" << endl;
-    */
 }
