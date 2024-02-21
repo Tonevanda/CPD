@@ -64,3 +64,41 @@
 | 10240  | 128        |     585.762   |
 |        | 256        |     516.067   |
 |        | 512        |     600.399   |
+
+# Part 2 - Performance evaluation of a multi-core implementation
+
+>Implement parallel versions of the second implementation (line x line) of the matrix product.
+
+>Analyze the next two solutions, and verify their performance (MFlops, speedup and efficiency).
+
+### 1st Case Measurements 
+
+| Size | C++ (seconds) |
+| ---- | ------------- |
+| 600  |               |
+| 1000 |               |
+| 1400 |               |
+| 1800 |               |
+| 2200 |               |
+| 2600 |               |
+| 3000 |               |
+| 4096 |               |
+| 6144 |               |
+| 8192 |               |
+| 10240|               |
+
+### 2nd Case Measurements 
+
+| Size | C++ (seconds) |
+| ---- | ------------- |
+| 600  |               |
+| 1000 |               |
+| 1400 |               |
+| 1800 |               |
+| 2200 |               |
+| 2600 |               |
+| 3000 |               |
+| 4096 |               |
+| 6144 |               |
+| 8192 |               |
+| 10240|               |
