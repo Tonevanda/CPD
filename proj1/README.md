@@ -1,5 +1,20 @@
 # Part 1 - Performance Evaluation of a single core
 
+## Compilação e Execução
+
+Para compilar e correr o programa, temos que correr o seguinte comando:
+
+```sh
+g++ -O2 matprod.cpp -o mm -lpapi
+./mm
+```
+
+Caso dê erro do PAPI, é necessário correr o seguinte script para permitir que o PAPI consiga ter acesso aos contadores de performance de Linux: 
+
+```sh
+sudo sh -c 'echo -1 >/proc/sys/kernel/perf_event_paranoid'
+```
+
 ## Exercise 1
 
 >Download the example file from moodle that contains the basic algorithm in C/C++ that multiplies two matrices, i.e. multiplies one line of the first matrix by each column of the second matrix (matrixproduct.cpp). Implement the same algorithm in another programming language (just one), such as JAVA, C#, Fortran, etc, of your choice.
