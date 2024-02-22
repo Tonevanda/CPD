@@ -229,7 +229,7 @@ int main (int argc, char *argv[])
 	int op;
 	
 	int EventSet = PAPI_NULL;
-  	long long values[2];
+  	long long values[3];
   	int ret;
 	
 
@@ -249,6 +249,8 @@ int main (int argc, char *argv[])
 	ret = PAPI_add_event(EventSet,PAPI_L2_DCM);
 	if (ret != PAPI_OK) cout << "ERROR: PAPI_L2_DCM" << endl;
 
+	ret = PAPI_add_event(EventSet, PAPI_FP_OPS);
+	if (ret != PAPI_OK) cout << "ERROR: PAPI_FP_OPS" << endl;
 
 	op=1;
 	do {
@@ -287,6 +289,7 @@ int main (int argc, char *argv[])
   		if (ret != PAPI_OK) cout << "ERROR: Stop PAPI" << endl;
   		printf("L1 DCM: %lld \n",values[0]);
   		printf("L2 DCM: %lld \n",values[1]);
+		printf("FLOPS: %lld \n", values[2]);
 
 		ret = PAPI_reset( EventSet );
 		if ( ret != PAPI_OK )
@@ -301,6 +304,10 @@ int main (int argc, char *argv[])
 		std::cout << "FAIL remove event" << endl; 
 
 	ret = PAPI_remove_event( EventSet, PAPI_L2_DCM );
+	if ( ret != PAPI_OK )
+		std::cout << "FAIL remove event" << endl; 
+
+	ret = PAPI_remove_event(EventSet, PAPI_FP_OPS);
 	if ( ret != PAPI_OK )
 		std::cout << "FAIL remove event" << endl; 
 
