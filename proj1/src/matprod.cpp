@@ -171,9 +171,9 @@ void OnMultBlock(int m_ar, int m_br, int bkSize)
 	for (int bi = 0; bi < m_ar; bi += bkSize) {
 		for (int bk = 0; bk < m_ar; bk += bkSize) {
 			for (int bj = 0; bj < m_br; bj += bkSize) {
-				for (int i = bi; i < (bi + bkSize); i++) {
-					for (int k = bk; k < (bk + bkSize); k++) {
-						for (int j = bj; j < (bj + bkSize); j++) {
+				for (int i = bi; i < (bi + bkSize) && i < m_ar; i++) {
+					for (int k = bk; k < (bk + bkSize) && k < m_ar; k++) {
+						for (int j = bj; j < (bj + bkSize) && j < m_ar; j++) {
 							phc[i * m_ar + j] += pha[i * m_ar + k] * phb[k * m_br + j];
 						}
 					}
@@ -229,7 +229,7 @@ int main (int argc, char *argv[])
 	int op;
 	
 	int EventSet = PAPI_NULL;
-  	long long values[3];
+  	long long values[2];
   	int ret;
 	
 
@@ -248,9 +248,6 @@ int main (int argc, char *argv[])
 
 	ret = PAPI_add_event(EventSet,PAPI_L2_DCM);
 	if (ret != PAPI_OK) cout << "ERROR: PAPI_L2_DCM" << endl;
-
-	ret = PAPI_add_event(EventSet, PAPI_FP_OPS);
-	if (ret != PAPI_OK) cout << "ERROR: PAPI_FP_OPS" << endl;
 
 	op=1;
 	do {
@@ -289,7 +286,6 @@ int main (int argc, char *argv[])
   		if (ret != PAPI_OK) cout << "ERROR: Stop PAPI" << endl;
   		printf("L1 DCM: %lld \n",values[0]);
   		printf("L2 DCM: %lld \n",values[1]);
-		printf("FLOPS: %lld \n", values[2]);
 
 		ret = PAPI_reset( EventSet );
 		if ( ret != PAPI_OK )
@@ -304,10 +300,6 @@ int main (int argc, char *argv[])
 		std::cout << "FAIL remove event" << endl; 
 
 	ret = PAPI_remove_event( EventSet, PAPI_L2_DCM );
-	if ( ret != PAPI_OK )
-		std::cout << "FAIL remove event" << endl; 
-
-	ret = PAPI_remove_event(EventSet, PAPI_FP_OPS);
 	if ( ret != PAPI_OK )
 		std::cout << "FAIL remove event" << endl; 
 

@@ -119,9 +119,12 @@ void OnMultLineSeparated(int m_ar, int m_br)
 		}
 	}
 
+	double threads;
+	#pragma omp parallel
+	threads = omp_get_num_threads();
 
     Time2 = clock();
-	sprintf(st, "Time: %3.3f seconds\n", (double)(Time2 - Time1) / CLOCKS_PER_SEC);
+	sprintf(st, "Time: %3.3f seconds\n", (double)(Time2 - Time1) / CLOCKS_PER_SEC  / threads);
 	cout << st;
 
 	// display 10 elements of the result matrix to verify correctness
