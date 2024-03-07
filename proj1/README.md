@@ -1,5 +1,20 @@
 # Part 1 - Performance Evaluation of a single core
 
+## Compilação e Execução
+
+Para compilar e correr o programa, temos que correr o seguinte comando:
+
+```sh
+g++ -O2 matprod.cpp -o mm -lpapi
+./mm
+```
+
+Caso dê erro do PAPI, é necessário correr o seguinte script para permitir que o PAPI consiga ter acesso aos contadores de performance de Linux: 
+
+```sh
+sudo sh -c 'echo -1 >/proc/sys/kernel/perf_event_paranoid'
+```
+
 ## Exercise 1
 
 >Download the example file from moodle that contains the basic algorithm in C/C++ that multiplies two matrices, i.e. multiplies one line of the first matrix by each column of the second matrix (matrixproduct.cpp). Implement the same algorithm in another programming language (just one), such as JAVA, C#, Fortran, etc, of your choice.
@@ -37,8 +52,8 @@
 | 2200 |     7.499     |                  |
 | 2600 |     12.521    |                  |
 | 3000 |     19.107    |                  |
-| 4096 |     49.877    |        --        |
-| 6144 |     165.976   |        --        |
+| 4096 |     49.877    |                  |
+| 6144 |     165.976   |                  |
 | 8192 |     401.148   |        --        |
 | 10240|     750.871   |        --        |
 
@@ -64,3 +79,41 @@
 | 10240  | 128        |     585.762   |
 |        | 256        |     516.067   |
 |        | 512        |     600.399   |
+
+# Part 2 - Performance evaluation of a multi-core implementation
+
+>Implement parallel versions of the second implementation (line x line) of the matrix product.
+
+>Analyze the next two solutions, and verify their performance (MFlops, speedup and efficiency).
+
+### 1st Case Measurements 
+
+| Size | C++ (seconds) |
+| ---- | ------------- |
+| 600  |      0.042    |
+| 1000 |      0.135    |
+| 1400 |      0.399    |
+| 1800 |      0.923    |
+| 2200 |      2.039    |
+| 2600 |      3.604    |
+| 3000 |      6.229    |
+| 4096 |     17.924    |
+| 6144 |     64.983    |
+| 8192 |    156.911    |
+| 10240|    309.197    |
+
+### 2nd Case Measurements 
+
+| Size | C++ (seconds) |
+| ---- | ------------- |
+| 600  |               |
+| 1000 |               |
+| 1400 |               |
+| 1800 |               |
+| 2200 |               |
+| 2600 |               |
+| 3000 |               |
+| 4096 |               |
+| 6144 |               |
+| 8192 |               |
+| 10240|               |
