@@ -6,7 +6,7 @@ import java.io.*;
  *
  * @author www.codejava.net
  */
-public class TimeClient {
+public class Client {
  
     public static void main(String[] args) {
 
