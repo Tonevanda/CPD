@@ -1,41 +1,65 @@
 import java.net.*;
 import java.io.*;
- 
+import java.util.Scanner;
+
 /**
  * This program demonstrates a simple TCP/IP socket client.
  *
  * @author www.codejava.net
  */
 public class Client {
+
+    final static int port = 8080;
+    final static String hostname = "localhost";
  
     public static void main(String[] args) {
 
-        if (args.length < 2) return;
+        Client client = new Client();
+        client.startClient();
 
-        String hostname = args[0];
-        int port = Integer.parseInt(args[1]);
- 
+    }
+
+    private void startClient(){
+
+        System.out.println("Client started");
+
         try (Socket socket = new Socket(hostname, port)) {
- 
+
+            // Send credentials to server
             OutputStream output = socket.getOutputStream();
             PrintWriter writer = new PrintWriter(output, true);
-            writer.println("Tonevanda");
+            String credentials = getCredentials();
+            writer.println(credentials);
 
+            // Read information from server
             InputStream input = socket.getInputStream();
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
- 
+
             String time = reader.readLine();
- 
+
             System.out.println(time);
- 
- 
+
+
         } catch (UnknownHostException ex) {
- 
+
             System.out.println("Server not found: " + ex.getMessage());
- 
+
         } catch (IOException ex) {
- 
+
             System.out.println("I/O error: " + ex.getMessage());
         }
+    }
+
+    // TODO: Hide password input
+    private String getCredentials() {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("Enter your name: ");
+        String name = scanner.nextLine();
+
+        System.out.println("Enter your password: ");
+        String password = scanner.nextLine();
+
+        return name + ":" + password;
     }
 }
