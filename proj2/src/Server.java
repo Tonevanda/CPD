@@ -14,8 +14,8 @@ public class Server {
 
     List<Thread> gameThreads = new ArrayList<>();
     List<Player> players = new ArrayList<>();
-    final int NUM_PLAYERS = 4;
-    final int port = 8080;
+    final static int NUM_PLAYERS = 4;
+    final static int port = 8080;
 
     public static void main(String[] args) {
         Server server = new Server();
@@ -36,11 +36,22 @@ public class Server {
                 String name = reader.readLine();
 
                 System.out.println("New client connected: " + name);
-                players.add(new Player(name, 0));
+
+                boolean authenticated = authenticateClient(name);
+
+                if(authenticated)
+                    players.add(new Player(name, 0));
 
                 if(players.size() == NUM_PLAYERS){
+
                     addGameThread();
-                    startGame();
+
+                    // Get the first NUM_PLAYERS players
+                    List<Player> gamePlayers = players.subList(0, NUM_PLAYERS);
+                    startGame(gamePlayers);
+                    
+                    // Remove those players from the list
+                    players.removeAll(gamePlayers);
                     // TODO: Isto fecha as threads todas, queremos só fechar a thread do jogo que foi criado
                     closeThreads();
                 }
@@ -57,9 +68,20 @@ public class Server {
         }
     }
 
-    private void startGame() {
+    private void startGame(List<Player> players) {
         Game game = new Game(players);
         game.run();
+    }
+
+    // TODO: Need to implement database to authenticate clients
+    private boolean authenticateClient(String input){
+        // Get name
+        String name = input.split(":")[0];
+
+        // Get password
+        String password = input.split(":")[1];
+
+        return true;
     }
 
     private void addGameThread(){
