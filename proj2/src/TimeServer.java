@@ -18,7 +18,6 @@ public class TimeServer {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
  
             System.out.println("Server is listening on port " + port);
-            System.out.println("Hostname: " + serverSocket.getInetAddress().getHostName());
  
             while (true) {
                 Socket socket = serverSocket.accept();
