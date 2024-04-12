@@ -14,8 +14,8 @@ public class Server {
 
     List<Thread> gameThreads = new ArrayList<>();
     List<Player> players = new ArrayList<>();
+    final int port = 8080;
     final static int NUM_PLAYERS = 4;
-    final static int port = 8080;
 
     public static void main(String[] args) {
         Server server = new Server();
