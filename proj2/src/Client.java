@@ -35,9 +35,9 @@ public class Client {
             InputStream input = socket.getInputStream();
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
-            String time = reader.readLine();
+            String response = reader.readLine();
 
-            System.out.println(time);
+            System.out.println(response);
 
 
         } catch (UnknownHostException ex) {

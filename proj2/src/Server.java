@@ -1,9 +1,12 @@
 import java.io.*;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * This program demonstrates a simple TCP/IP socket server.
@@ -16,6 +19,7 @@ public class Server {
     List<Player> players = new ArrayList<>();
     final int port = 8080;
     final static int NUM_PLAYERS = 4;
+    final static String dbPath = "./database/database.json";
 
     public static void main(String[] args) {
         Server server = new Server();
@@ -37,10 +41,11 @@ public class Server {
 
                 System.out.println("New client connected: " + name);
 
-                boolean authenticated = authenticateClient(name);
+                int rank = authenticateClient(name);
 
-                if(authenticated)
-                    players.add(new Player(name, 0));
+                // If rank is -1, the user was not authenticated
+                if(rank >= 0)
+                    players.add(new Player(name, rank));
 
                 if(players.size() == NUM_PLAYERS){
 
@@ -59,7 +64,7 @@ public class Server {
                 OutputStream output = socket.getOutputStream();
                 PrintWriter writer = new PrintWriter(output, true);
 
-                writer.println(new Date());
+                writer.println("Fodasse");
             }
 
         } catch (IOException ex) {
@@ -71,17 +76,6 @@ public class Server {
     private void startGame(List<Player> players) {
         Game game = new Game(players);
         game.run();
-    }
-
-    // TODO: Need to implement database to authenticate clients
-    private boolean authenticateClient(String input){
-        // Get name
-        String name = input.split(":")[0];
-
-        // Get password
-        String password = input.split(":")[1];
-
-        return true;
     }
 
     private void addGameThread(){
@@ -108,4 +102,64 @@ public class Server {
         }
     }
 
+    // TODO: Send message to client regarding authentication status
+    private int authenticateClient(String input){
+        // Load the JSON file
+        JSONArray db = loadJson();
+
+        // Get name
+        String name = input.split(":")[0];
+
+        // Get password
+        String password = input.split(":")[1];
+
+        // Check if the name and password are in the database
+        for(int i = 0; i < db.length(); i++){
+            if(db.getJSONObject(i).getString("username").equals(name) && db.getJSONObject(i).getString("password").equals(password)){
+                System.out.println("User authenticated");
+                return Integer.parseInt(db.getJSONObject(i).getString("rank"));
+            } else if (db.getJSONObject(i).getString("username").equals(name) && !db.getJSONObject(i).getString("password").equals(password)) {
+                System.out.println("Wrong password");
+                return -1;
+            }
+        }
+
+        // If the name is not in the database, create new user account
+        JSONObject user = createUser(name, password);
+        db.put(user);
+        System.out.println("New user account created");
+
+        // Save the new user account to the database
+        saveJson(db);
+        System.out.println("Saved new user account to database");
+
+        return 0;
+    }
+
+    private JSONObject createUser(String username, String password){
+        JSONObject user = new JSONObject();
+        user.put("username", username);
+        user.put("password", password);
+        user.put("rank", 0);
+        return user;
+    }
+
+    private JSONArray loadJson() {
+        try {
+            String content = new String(Files.readAllBytes(Paths.get(dbPath)));
+            return new JSONArray(content);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+            return null;
+        }
+    }
+
+    private void saveJson(JSONArray json) {
+        try {
+            Files.write(Paths.get(dbPath), json.toString().getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
