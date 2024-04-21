@@ -4,7 +4,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -16,9 +19,9 @@ import org.json.JSONObject;
 public class Server {
 
     List<Thread> gameThreads = new ArrayList<>();
-    List<Player> players = new ArrayList<>();
+    Queue<Player> players = new LinkedList<>();
     final int port = 8080;
-    final static int NUM_PLAYERS = 4;
+    final static int NUM_PLAYERS = 1;
     final static String dbPath = "./database/database.json";
 
     public static void main(String[] args) {
@@ -51,13 +54,13 @@ public class Server {
                 if(players.size() == NUM_PLAYERS){
 
                     // Get the first NUM_PLAYERS players
-                    List<Player> gamePlayers = players.subList(0, NUM_PLAYERS);
+                    List<Player> gamePlayers = new ArrayList<>();
+                    for (int i  = 0; i < NUM_PLAYERS; i++){
+                        gamePlayers.add(players.poll());
+                    }
 
                     // Start the game
                     startGame(gamePlayers);
-                    
-                    // Remove those players from the list
-                    players.removeAll(gamePlayers);
 
                     // TODO: Isto fecha as threads todas, queremos só fechar a thread do jogo que foi criado
                     closeThreads();
@@ -77,8 +80,7 @@ public class Server {
 
     private void startGame(List<Player> players) {
         Game game = new Game(players);
-        Thread gameThread = Thread.startVirtualThread(game);
-        gameThread.start();
+        Thread.startVirtualThread(game);
     }
 
     private void joinThreads() throws InterruptedException {
@@ -88,6 +90,7 @@ public class Server {
     }
 
     private void closeThreads(){
+        System.out.println("Closing threads");
         for(Thread thread : gameThreads){
             thread.interrupt();
         }
