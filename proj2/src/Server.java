@@ -41,22 +41,24 @@ public class Server {
 
                 System.out.println("New client connected: " + name);
 
-                int rank = authenticateClient(name);
+                int rank = authenticateClient(name, socket);
 
                 // If rank is -1, the user was not authenticated
                 if(rank >= 0)
-                    players.add(new Player(name, rank));
+                    players.add(new Player(name, rank, socket));
 
+                // If we have enough players, start a game
                 if(players.size() == NUM_PLAYERS){
-
-                    addGameThread();
 
                     // Get the first NUM_PLAYERS players
                     List<Player> gamePlayers = players.subList(0, NUM_PLAYERS);
+
+                    // Start the game
                     startGame(gamePlayers);
                     
                     // Remove those players from the list
                     players.removeAll(gamePlayers);
+
                     // TODO: Isto fecha as threads todas, queremos só fechar a thread do jogo que foi criado
                     closeThreads();
                 }
@@ -75,19 +77,8 @@ public class Server {
 
     private void startGame(List<Player> players) {
         Game game = new Game(players);
-        game.run();
-    }
-
-    private void addGameThread(){
-        Thread thread = Thread.startVirtualThread(()-> {
-            try{
-                Thread.sleep(Duration.ofSeconds(1));
-            }
-            catch(InterruptedException e){
-                System.out.println("Error starting game thread");
-            }
-        });
-        gameThreads.add(thread);
+        Thread gameThread = Thread.startVirtualThread(game);
+        gameThread.start();
     }
 
     private void joinThreads() throws InterruptedException {
@@ -102,8 +93,7 @@ public class Server {
         }
     }
 
-    // TODO: Send message to client regarding authentication status
-    private int authenticateClient(String input){
+    private int authenticateClient(String input, Socket socket) throws IOException {
         // Load the JSON file
         JSONArray db = loadJson();
 
@@ -113,13 +103,16 @@ public class Server {
         // Get password
         String password = input.split(":")[1];
 
+        OutputStream output = socket.getOutputStream();
+        PrintWriter writer = new PrintWriter(output, true);
+
         // Check if the name and password are in the database
         for(int i = 0; i < db.length(); i++){
             if(db.getJSONObject(i).getString("username").equals(name) && db.getJSONObject(i).getString("password").equals(password)){
-                System.out.println("User authenticated");
-                return Integer.parseInt(db.getJSONObject(i).getString("rank"));
+                writer.println("Successfully authenticated");
+                return db.getJSONObject(i).getInt("rank");
             } else if (db.getJSONObject(i).getString("username").equals(name) && !db.getJSONObject(i).getString("password").equals(password)) {
-                System.out.println("Wrong password");
+                writer.println("Wrong password");
                 return -1;
             }
         }
@@ -127,7 +120,7 @@ public class Server {
         // If the name is not in the database, create new user account
         JSONObject user = createUser(name, password);
         db.put(user);
-        System.out.println("New user account created");
+        writer.println("New account has been created");
 
         // Save the new user account to the database
         saveJson(db);

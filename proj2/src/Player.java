@@ -6,9 +6,10 @@ public class Player {
     Socket _socket;
     private boolean _isReady;
 
-    public Player(String name, int rank){
+    public Player(String name, int rank, Socket socket){
         this._name = name;
         this._rank = rank;
+        this._socket = socket;
         this._isReady = false;
     }
 
