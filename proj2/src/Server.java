@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -35,6 +36,9 @@ public class Server {
             System.out.println("Server is listening on port " + port);
 
             while (true) {
+                for(Player player : players){
+                    System.out.println(player.getName());
+                }
                 Socket socket = serverSocket.accept();
 
                 InputStream input = socket.getInputStream();
@@ -51,7 +55,7 @@ public class Server {
                     players.add(new Player(name, rank, socket));
 
                 // If we have enough players, start a game
-                if(players.size() == NUM_PLAYERS){
+                if(players.size() >= NUM_PLAYERS){
 
                     // Get the first NUM_PLAYERS players
                     List<Player> gamePlayers = new ArrayList<>();
@@ -63,24 +67,34 @@ public class Server {
                     startGame(gamePlayers);
 
                     // TODO: Isto fecha as threads todas, queremos só fechar a thread do jogo que foi criado
-                    closeThreads();
+                    //closeThreads();
                 }
+                System.out.println("Server running");
 
                 OutputStream output = socket.getOutputStream();
                 PrintWriter writer = new PrintWriter(output, true);
 
                 writer.println("Fodasse");
+
             }
 
         } catch (IOException ex) {
             System.out.println("Server exception: " + ex.getMessage());
             ex.printStackTrace();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private void startGame(List<Player> players) {
-        Game game = new Game(players);
-        Thread.startVirtualThread(game);
+    private void startGame(List<Player> players) throws InterruptedException {
+        Thread.startVirtualThread(()->{
+            Game game = new Game(players);
+            game.run();
+            List<Player> game_players = game.get_players();
+            for (int i  = 0; i < NUM_PLAYERS; i++){
+                this.players.add(game_players.get(i));
+            }
+        });
     }
 
     private void joinThreads() throws InterruptedException {
