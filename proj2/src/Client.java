@@ -28,16 +28,29 @@ public class Client {
             // Send credentials to server
             OutputStream output = socket.getOutputStream();
             PrintWriter writer = new PrintWriter(output, true);
-            String credentials = getCredentials();
+
+            Scanner scanner = new Scanner(System.in);
+
+            String credentials = getCredentials(scanner);
             writer.println(credentials);
 
             // Read information from server
             InputStream input = socket.getInputStream();
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
-            String response = reader.readLine();
 
+            String response = reader.readLine();
             System.out.println(response);
+
+            while(true){
+                response = reader.readLine();
+                System.out.println(response);
+                if(response.endsWith("!")){
+                    String move = scanner.nextLine();
+                    writer.println(move);
+                }
+
+            }
 
 
         } catch (UnknownHostException ex) {
@@ -51,8 +64,8 @@ public class Client {
     }
 
     // TODO: Hide password input
-    private String getCredentials() {
-        Scanner scanner = new Scanner(System.in);
+    private String getCredentials(Scanner scanner) {
+
 
         System.out.println("Enter your name: ");
         String name = scanner.nextLine();

@@ -22,7 +22,7 @@ public class Server {
     List<Thread> gameThreads = new ArrayList<>();
     Queue<Player> players = new LinkedList<>();
     final int port = 8080;
-    final static int NUM_PLAYERS = 1;
+    final static int NUM_PLAYERS = 2;
     final static String dbPath = "./database/database.json";
 
     public static void main(String[] args) {
@@ -36,23 +36,29 @@ public class Server {
             System.out.println("Server is listening on port " + port);
 
             while (true) {
-                for(Player player : players){
-                    System.out.println(player.getName());
-                }
                 Socket socket = serverSocket.accept();
+
 
                 InputStream input = socket.getInputStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
-                String name = reader.readLine();
+                OutputStream output = socket.getOutputStream();
+                PrintWriter writer = new PrintWriter(output, false);
+
+                String response = reader.readLine();
+
+                String name = response.split(":")[0];
+
+                // Get password
+                String password = response.split(":")[1];
 
                 System.out.println("New client connected: " + name);
 
-                int rank = authenticateClient(name, socket);
+                int rank = authenticateClient(name, password, socket, writer);
 
                 // If rank is -1, the user was not authenticated
                 if(rank >= 0)
-                    players.add(new Player(name, rank, socket));
+                    players.add(new Player(name, rank, socket, writer, reader));
 
                 // If we have enough players, start a game
                 if(players.size() >= NUM_PLAYERS){
@@ -66,15 +72,13 @@ public class Server {
                     // Start the game
                     startGame(gamePlayers);
 
-                    // TODO: Isto fecha as threads todas, queremos só fechar a thread do jogo que foi criado
-                    //closeThreads();
+
                 }
                 System.out.println("Server running");
 
-                OutputStream output = socket.getOutputStream();
-                PrintWriter writer = new PrintWriter(output, true);
 
-                writer.println("Fodasse");
+
+
 
             }
 
@@ -89,11 +93,15 @@ public class Server {
     private void startGame(List<Player> players) throws InterruptedException {
         Thread.startVirtualThread(()->{
             Game game = new Game(players);
-            game.run();
-            List<Player> game_players = game.get_players();
-            for (int i  = 0; i < NUM_PLAYERS; i++){
-                this.players.add(game_players.get(i));
+            try {
+                game.run();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
+            //List<Player> game_players = game.get_players();
+            //for (int i  = 0; i < NUM_PLAYERS; i++){
+            //    this.players.add(game_players.get(i));
+            //}
         });
     }
 
@@ -110,26 +118,23 @@ public class Server {
         }
     }
 
-    private int authenticateClient(String input, Socket socket) throws IOException {
+    private int authenticateClient(String name, String password, Socket socket, PrintWriter writer) throws IOException {
         // Load the JSON file
         JSONArray db = loadJson();
 
-        // Get name
-        String name = input.split(":")[0];
 
-        // Get password
-        String password = input.split(":")[1];
 
-        OutputStream output = socket.getOutputStream();
-        PrintWriter writer = new PrintWriter(output, true);
+
 
         // Check if the name and password are in the database
         for(int i = 0; i < db.length(); i++){
             if(db.getJSONObject(i).getString("username").equals(name) && db.getJSONObject(i).getString("password").equals(password)){
                 writer.println("Successfully authenticated");
+                writer.flush();
                 return db.getJSONObject(i).getInt("rank");
             } else if (db.getJSONObject(i).getString("username").equals(name) && !db.getJSONObject(i).getString("password").equals(password)) {
                 writer.println("Wrong password");
+                writer.flush();
                 return -1;
             }
         }
@@ -138,10 +143,13 @@ public class Server {
         JSONObject user = createUser(name, password);
         db.put(user);
         writer.println("New account has been created");
+        writer.flush();
 
         // Save the new user account to the database
         saveJson(db);
         System.out.println("Saved new user account to database");
+
+
 
         return 0;
     }
