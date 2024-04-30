@@ -8,7 +8,6 @@ import java.util.List;
 public class Player{
     private String _name;
     private int _rank;
-    final private Socket _socket;
 
     final private PrintWriter _writer;
 
@@ -27,10 +26,9 @@ public class Player{
 
     private String _text = "";
 
-    public Player(String name, int rank, Socket socket, PrintWriter writer, BufferedReader reader){
+    public Player(String name, int rank, PrintWriter writer, BufferedReader reader){
         this._name = name;
         this._rank = rank;
-        this._socket = socket;
         this._writer = writer;
         this._reader = reader;
         this.deck = new ArrayList<>();
@@ -57,7 +55,6 @@ public class Player{
         return this._rank;
     }
 
-    public Socket getSocket(){ return this._socket; }
 
     public PrintWriter getWriter() { return this._writer; }
 
@@ -68,8 +65,13 @@ public class Player{
 
     public Card getCard(int cardNumber) { return this.hand.get(cardNumber); }
 
-    public void setRank(int rank){
-        this._rank = rank;
+    public void updateRank(int score, boolean isWinner){
+
+        if(isWinner && score - this._rank/10 < 1){
+            this._rank += 1;
+        }
+        else this._rank += score - this._rank/10;
+        if(this._rank < 0) this._rank = 0;
     }
 
     public void setText(String text){ this._text = text; }

@@ -22,7 +22,7 @@ public class Server {
     List<Thread> gameThreads = new ArrayList<>();
     Queue<Player> players = new LinkedList<>();
     final int port = 8080;
-    final static int NUM_PLAYERS = 3;
+    final static int NUM_PLAYERS = 2;
     final static String dbPath = "./database/database.json";
 
     public static void main(String[] args) {
@@ -54,11 +54,11 @@ public class Server {
 
                 System.out.println("New client connected: " + name);
 
-                int rank = authenticateClient(name, password, socket, writer);
+                int rank = authenticateClient(name, password, writer);
 
                 // If rank is -1, the user was not authenticated
                 if(rank >= 0)
-                    players.add(new Player(name, rank, socket, writer, reader));
+                    players.add(new Player(name, rank, writer, reader));
 
                 // If we have enough players, start a game
                 if(players.size() >= NUM_PLAYERS){
@@ -95,30 +95,36 @@ public class Server {
             Game game = new Game(players);
             try {
                 game.run();
+                for(Player player : game.get_players()){
+                    updateRank(player.getName(), player.getRank());
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            //List<Player> game_players = game.get_players();
-            //for (int i  = 0; i < NUM_PLAYERS; i++){
-            //    this.players.add(game_players.get(i));
-            //}
+
         });
     }
 
-    private void joinThreads() throws InterruptedException {
-        for(Thread thread : gameThreads){
-            thread.join();
+
+    private synchronized void updateRank(String name, int newRank){
+        JSONArray db = loadJson();
+
+        for(int i = 0; i < db.length(); i++){
+            if(db.getJSONObject(i).getString("username").equals(name)){
+
+                db.getJSONObject(i).put("rank", newRank);
+                System.out.println(db.getJSONObject(i).getInt("rank") + db.getJSONObject(i).getString("username"));
+                saveJson(db);
+                return;
+            }
         }
+
+
+
+        System.out.println("Can't update rank, because user does not exist");
     }
 
-    private void closeThreads(){
-        System.out.println("Closing threads");
-        for(Thread thread : gameThreads){
-            thread.interrupt();
-        }
-    }
-
-    private int authenticateClient(String name, String password, Socket socket, PrintWriter writer) throws IOException {
+    private synchronized int authenticateClient(String name, String password, PrintWriter writer) throws IOException {
         // Load the JSON file
         JSONArray db = loadJson();
 
@@ -173,7 +179,7 @@ public class Server {
         }
     }
 
-    private void saveJson(JSONArray json) {
+    private synchronized void saveJson(JSONArray json) {
         try {
             Files.write(Paths.get(dbPath), json.toString().getBytes());
         } catch (IOException e) {

@@ -14,6 +14,8 @@ public class Game extends Communication{
 
     final private String CLEAR_BOARD = "\033[H\033[2J";
 
+    final private int SCORE_RANGE = 20;
+
     public Game(List<Player> players){
 
         this.players = players;
@@ -30,6 +32,7 @@ public class Game extends Communication{
             flush(player.getWriter());
             this.currentPlayers.add(player);
         }
+        int currentScore = 0;
         while(true){
             Player currentPlayer = this.currentPlayers.getFirst();
 
@@ -42,10 +45,6 @@ public class Game extends Communication{
 
 
             drawHands();
-
-
-
-
 
             for(Player player : this.currentPlayers){
                 write(player.getWriter(), text);
@@ -63,6 +62,8 @@ public class Game extends Communication{
             if(!this.cards.isEmpty() && currentPlayer.hasLost(this.cards.peek())){
                 write(currentPlayer.getWriter(), "you lost!");
                 flush(currentPlayer.getWriter());
+                giveScore(currentPlayer.getName(), currentScore, false);
+                currentScore += SCORE_RANGE/(this.players.size()-1);
             }
             else {
                 write(currentPlayer.getWriter(), "your move!");
@@ -79,19 +80,26 @@ public class Game extends Communication{
                 break;
             }
 
-
-
-
         }
 
         Player winner = this.currentPlayers.getFirst();
         write(winner.getWriter(), "Congratulations, you won!");
         flush(winner.getWriter());
+        giveScore(winner.getName(), currentScore, true);
 
 
 
         System.out.println("Game ended");
 
+    }
+
+    private void giveScore(String playerName, int currentScore, boolean isWinner){
+        for(Player player : this.players){
+            if(player.getName().equals(playerName)){
+                player.updateRank(currentScore, isWinner);
+                return;
+            }
+        }
     }
 
     private String drawPlayers(){
