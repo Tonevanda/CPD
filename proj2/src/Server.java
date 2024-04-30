@@ -4,10 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -19,7 +16,9 @@ import org.json.JSONObject;
  */
 public class Server {
 
-    Queue<Player> players = new LinkedList<>();
+    Queue<Player> simplePlayers = new LinkedList<>();
+
+    List<Player> rankedPlayers = new ArrayList<>();
     final int port = 8080;
     final static int NUM_PLAYERS = 2;
     final static String dbPath = "./database/database.json";
@@ -55,31 +54,23 @@ public class Server {
 
                 int rank = authenticateClient(name, password, writer);
 
+                Player player = new Player(name, rank, writer, reader);
+
                 writer.println("Which gamemode do you wish to play?");
                 writer.println("A -> Simple   B -> Ranked");
                 writer.flush();
 
-                reader.readLine();
+                response = reader.readLine();
+
+
+                if(rank >= 0){
+                    if(response.equals("A")) manageSimple(player);
+                    else if(response.equals("B")) manageRanked(player);
+                }
 
 
                 // If rank is -1, the user was not authenticated
-                if(rank >= 0)
-                    players.add(new Player(name, rank, writer, reader));
 
-                // If we have enough players, start a game
-                if(players.size() >= NUM_PLAYERS){
-
-                    // Get the first NUM_PLAYERS players
-                    List<Player> gamePlayers = new ArrayList<>();
-                    for (int i  = 0; i < NUM_PLAYERS; i++){
-                        gamePlayers.add(players.poll());
-                    }
-
-                    // Start the game
-                    startGame(gamePlayers);
-
-
-                }
                 System.out.println("Server running");
 
 
@@ -96,8 +87,48 @@ public class Server {
         }
     }
 
+    private void manageRanked(Player player) throws InterruptedException {
+        this.rankedPlayers.add(player);
+
+
+        this.rankedPlayers.sort((p1, p2) -> (p2.getRank() - p1.getRank()));
+
+
+
+        if(this.rankedPlayers.size() >= NUM_PLAYERS){
+            List<Player> gamePlayers = new ArrayList<>();
+            for (int i  = 0; i < NUM_PLAYERS; i++){
+                gamePlayers.add(this.rankedPlayers.getFirst());
+                this.rankedPlayers.removeFirst();
+            }
+
+            startGame(gamePlayers);
+        }
+    }
+
+    private void manageSimple(Player player) throws InterruptedException {
+        this.simplePlayers.add(player);
+
+
+        // If we have enough players, start a game
+        if(this.simplePlayers.size() >= NUM_PLAYERS){
+
+            // Get the first NUM_PLAYERS players
+            List<Player> gamePlayers = new ArrayList<>();
+            for (int i  = 0; i < NUM_PLAYERS; i++){
+                gamePlayers.add(this.simplePlayers.poll());
+            }
+
+            // Start the game
+            startGame(gamePlayers);
+
+
+        }
+    }
+
     private void startGame(List<Player> players) throws InterruptedException {
         Thread.startVirtualThread(()->{
+            Collections.shuffle(players);
             Game game = new Game(players);
             try {
                 game.run();
