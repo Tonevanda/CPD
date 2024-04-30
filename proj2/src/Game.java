@@ -62,11 +62,11 @@ public class Game extends Communication{
             if(!this.cards.isEmpty() && currentPlayer.hasLost(this.cards.peek())){
                 write(currentPlayer.getWriter(), "you lost!");
                 flush(currentPlayer.getWriter());
-                giveScore(currentPlayer.getName(), currentScore, false);
+                currentPlayer.updateRank(currentScore, false);
                 currentScore += SCORE_RANGE/(this.players.size()-1);
             }
             else {
-                write(currentPlayer.getWriter(), "your move!");
+                write(currentPlayer.getWriter(), "your move.");
                 flush(currentPlayer.getWriter());
                 makeMove(currentPlayer);
                 this.currentPlayers.add(currentPlayer);
@@ -85,21 +85,13 @@ public class Game extends Communication{
         Player winner = this.currentPlayers.getFirst();
         write(winner.getWriter(), "Congratulations, you won!");
         flush(winner.getWriter());
-        giveScore(winner.getName(), currentScore, true);
+        winner.updateRank(currentScore, true);
+        //giveScore(winner.getName(), currentScore, true);
 
 
 
         System.out.println("Game ended");
 
-    }
-
-    private void giveScore(String playerName, int currentScore, boolean isWinner){
-        for(Player player : this.players){
-            if(player.getName().equals(playerName)){
-                player.updateRank(currentScore, isWinner);
-                return;
-            }
-        }
     }
 
     private String drawPlayers(){

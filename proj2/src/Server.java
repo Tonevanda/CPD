@@ -19,7 +19,6 @@ import org.json.JSONObject;
  */
 public class Server {
 
-    List<Thread> gameThreads = new ArrayList<>();
     Queue<Player> players = new LinkedList<>();
     final int port = 8080;
     final static int NUM_PLAYERS = 2;
@@ -55,6 +54,13 @@ public class Server {
                 System.out.println("New client connected: " + name);
 
                 int rank = authenticateClient(name, password, writer);
+
+                writer.println("Which gamemode do you wish to play?");
+                writer.println("A -> Simple   B -> Ranked");
+                writer.flush();
+
+                reader.readLine();
+
 
                 // If rank is -1, the user was not authenticated
                 if(rank >= 0)
@@ -135,7 +141,7 @@ public class Server {
         // Check if the name and password are in the database
         for(int i = 0; i < db.length(); i++){
             if(db.getJSONObject(i).getString("username").equals(name) && db.getJSONObject(i).getString("password").equals(password)){
-                writer.println("Successfully authenticated");
+                writer.println("Successfully authenticated!");
                 writer.flush();
                 return db.getJSONObject(i).getInt("rank");
             } else if (db.getJSONObject(i).getString("username").equals(name) && !db.getJSONObject(i).getString("password").equals(password)) {
@@ -148,7 +154,7 @@ public class Server {
         // If the name is not in the database, create new user account
         JSONObject user = createUser(name, password);
         db.put(user);
-        writer.println("New account has been created");
+        writer.println("New account has been created!");
         writer.flush();
 
         // Save the new user account to the database
@@ -179,7 +185,7 @@ public class Server {
         }
     }
 
-    private synchronized void saveJson(JSONArray json) {
+    private void saveJson(JSONArray json) {
         try {
             Files.write(Paths.get(dbPath), json.toString().getBytes());
         } catch (IOException e) {
