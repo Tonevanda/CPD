@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -29,6 +30,26 @@ public class Server {
         server.startServer();
     }
 
+    private void handleAuthentication(Socket socket, BufferedReader reader, PrintWriter writer) throws IOException, SocketException {
+        String response = reader.readLine();
+        String name = response.split(":")[0];
+        String password = response.split(":")[1];
+
+        System.out.println("New client connected: " + name);
+
+        int rank = authenticateClient(name, password, writer);
+
+        writer.println("Which gamemode do you wish to play?");
+        writer.println("A -> Simple   B -> Ranked");
+        writer.flush();
+
+        reader.readLine();
+
+        // If rank is -1, the user was not authenticated
+        if(rank >= 0)
+            players.add(new Player(name, rank, writer, reader));
+    }
+
     private void startServer(){
         try (ServerSocket serverSocket = new ServerSocket(port)) {
 
@@ -36,35 +57,22 @@ public class Server {
 
             while (true) {
                 Socket socket = serverSocket.accept();
-
+                socket.setKeepAlive(true);
 
                 InputStream input = socket.getInputStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
                 OutputStream output = socket.getOutputStream();
                 PrintWriter writer = new PrintWriter(output, false);
-
-                String response = reader.readLine();
-
-                String name = response.split(":")[0];
-
-                // Get password
-                String password = response.split(":")[1];
-
-                System.out.println("New client connected: " + name);
-
-                int rank = authenticateClient(name, password, writer);
-
-                writer.println("Which gamemode do you wish to play?");
-                writer.println("A -> Simple   B -> Ranked");
-                writer.flush();
-
-                reader.readLine();
-
-
-                // If rank is -1, the user was not authenticated
-                if(rank >= 0)
-                    players.add(new Player(name, rank, writer, reader));
+                Thread.startVirtualThread(()->{
+                    try {
+                        handleAuthentication(socket, reader, writer);
+                    } catch (IOException e) {
+                        System.out.println("Error handling authentication: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                });
+            
 
                 // If we have enough players, start a game
                 if(players.size() >= NUM_PLAYERS){
@@ -74,18 +82,10 @@ public class Server {
                     for (int i  = 0; i < NUM_PLAYERS; i++){
                         gamePlayers.add(players.poll());
                     }
-
                     // Start the game
                     startGame(gamePlayers);
-
-
                 }
                 System.out.println("Server running");
-
-
-
-
-
             }
 
         } catch (IOException ex) {
@@ -112,31 +112,32 @@ public class Server {
     }
 
 
-    private synchronized void updateRank(String name, int newRank){
+    private void updateRank(String name, int newRank){
         JSONArray db = loadJson();
 
-        for(int i = 0; i < db.length(); i++){
-            if(db.getJSONObject(i).getString("username").equals(name)){
-
-                db.getJSONObject(i).put("rank", newRank);
-                System.out.println(db.getJSONObject(i).getInt("rank") + db.getJSONObject(i).getString("username"));
-                saveJson(db);
-                return;
+        ReentrantLock lock = new ReentrantLock();
+        boolean found = false;
+        lock.lock();
+        try {
+            for(int i = 0; i < db.length(); i++){
+                if(db.getJSONObject(i).getString("username").equals(name)){
+    
+                    db.getJSONObject(i).put("rank", newRank);
+                    System.out.println(db.getJSONObject(i).getInt("rank") + db.getJSONObject(i).getString("username"));
+                    saveJson(db);
+                    found = true;
+                }
             }
+        } finally {
+            lock.unlock();
+            if (found) return;
         }
-
-
-
         System.out.println("Can't update rank, because user does not exist");
     }
 
-    private synchronized int authenticateClient(String name, String password, PrintWriter writer) throws IOException {
+    private int authenticateClient(String name, String password, PrintWriter writer) throws IOException {
         // Load the JSON file
         JSONArray db = loadJson();
-
-
-
-
 
         // Check if the name and password are in the database
         for(int i = 0; i < db.length(); i++){
@@ -150,18 +151,23 @@ public class Server {
                 return -1;
             }
         }
-
-        // If the name is not in the database, create new user account
-        JSONObject user = createUser(name, password);
-        db.put(user);
-        writer.println("New account has been created!");
-        writer.flush();
-
-        // Save the new user account to the database
-        saveJson(db);
-        System.out.println("Saved new user account to database");
-
-
+        
+        // We first create a lock so that only one thread can write to the database at a time
+        ReentrantLock lock = new ReentrantLock();
+        lock.lock();
+        try {
+            // If the name is not in the database, create new user account
+            JSONObject user = createUser(name, password);
+            db.put(user);
+            writer.println("New account has been created!");
+            writer.flush();
+        
+            // Save the new user account to the database
+            saveJson(db);
+            System.out.println("Saved new user account to database");
+        } finally {
+            lock.unlock();
+        }
 
         return 0;
     }
