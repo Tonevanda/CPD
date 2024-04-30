@@ -8,41 +8,38 @@ public class Card {
 
     }
 
+    public int getValue() { return _value; }
+
 
 
 
     public String draw(int row, int width, int height){
         String text = "";
+        int startingIndex = 1;
 
         if(row == 0){
             text = text.concat(" ");
-            for(int i = 1; i < width - 1; i++){
+            for(int i = startingIndex; i < width - 1; i++){
                 text = text.concat("_");
             }
             text = text.concat(" ");
         }
-        else if(row == height - 1){
-            text = text.concat("\\");
-            for(int i= 1; i < width - 1; i++){
-                text = text.concat("_");
-            }
-            text = text.concat("/");
-        }
-        else if(row == 1){
-            String stringValue = Integer.toString(this._value);
-            text = text.concat("/").concat(stringValue);
-            for(int i = 1+stringValue.length(); i < width - 1;i++){
-                text = text.concat(" ");
-            }
-            text = text.concat("\\");
-        }
         else{
             text = text.concat("|");
-            for(int i = 1; i < width - 1; i++){
-                text = text.concat(" ");
+
+            if(row == 1){
+                String stringValue = Integer.toString(this._value);
+                text = text.concat(stringValue);
+                startingIndex += stringValue.length();
+
+            }
+            for (int i = startingIndex; i < width - 1; i++) {
+                if(row == height - 1) text = text.concat("_");
+                else text = text.concat(" ");
             }
             text = text.concat("|");
         }
+
 
 
         return text;

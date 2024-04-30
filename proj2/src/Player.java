@@ -16,7 +16,13 @@ public class Player{
 
     private List<Card> deck;
 
-    private int _handCardsCount = 2;
+    private List<Card> hand = new ArrayList<>();
+
+    private List<Card> discardPile = new ArrayList<>();
+
+    private int _maxHandSize = 5;
+
+
 
 
     private String _text = "";
@@ -27,12 +33,20 @@ public class Player{
         this._socket = socket;
         this._writer = writer;
         this._reader = reader;
-        this.deck = new ArrayList<Card>();
+        this.deck = new ArrayList<>();
 
-        this.deck.add(new Card(3));
-        this.deck.add(new Card(4));
+        for(int i = 0; i < 10; i++){
+            this.deck.add(new Card(i));
+        }
 
         Collections.shuffle(this.deck);
+
+
+        drawCardsAction(_maxHandSize);
+
+
+
+
     }
 
     public String getName(){
@@ -51,7 +65,8 @@ public class Player{
 
     public String getText(){ return this._text; }
 
-    public Card getCard(int cardNumber) { return this.deck.get(cardNumber); }
+
+    public Card getCard(int cardNumber) { return this.hand.get(cardNumber); }
 
     public void setRank(int rank){
         this._rank = rank;
@@ -61,15 +76,29 @@ public class Player{
 
 
 
-    public int getHandCardsCount() { return this._handCardsCount; }
+    public int getHandCardsCount() { return this.hand.size(); }
+
+    public void drawCardsAction(int quantity){
+        for(int i = 0; i < quantity; i++){
+            if(this.deck.isEmpty()) reshuffleDeck();
+            this.hand.add(this.deck.getFirst());
+            this.deck.removeFirst();
+        }
+    }
+
+    public void reshuffleDeck(){
+        this.deck = this.discardPile;
+        Collections.shuffle(this.deck);
+        this.discardPile = new ArrayList<>();
+    }
 
 
     public void drawHand(int cardWidth, int cardHeight){
 
         for(int j = 0; j < cardHeight; j++){
             this._text = _text.concat("     ");
-            for(int i = 0; i < Math.min(this.deck.size(), 5); i++){
-                Card card = this.deck.get(i);
+            for(int i = 0; i < this.hand.size(); i++){
+                Card card = this.hand.get(i);
                 this._text = this._text.concat(card.draw(j, cardWidth, cardHeight));
 
             }
@@ -80,8 +109,22 @@ public class Player{
     }
 
     public void discardCard(int cardNumber){
-        this.deck.remove(cardNumber);
-        this._handCardsCount -= 1;
+
+        Card card = this.hand.get(cardNumber);
+
+        this.hand.remove(cardNumber);
+
+        if(this.hand.isEmpty()){
+            drawCardsAction(this._maxHandSize);
+        }
+        this.discardPile.add(card);
+    }
+
+    public boolean hasLost(Card boardCard){
+        for(Card card : this.hand){
+            if(card.getValue() >= boardCard.getValue()) return false;
+        }
+        return true;
     }
 
 

@@ -22,7 +22,7 @@ public class Server {
     List<Thread> gameThreads = new ArrayList<>();
     Queue<Player> players = new LinkedList<>();
     final int port = 8080;
-    final static int NUM_PLAYERS = 2;
+    final static int NUM_PLAYERS = 3;
     final static String dbPath = "./database/database.json";
 
     public static void main(String[] args) {
