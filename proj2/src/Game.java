@@ -136,8 +136,7 @@ public class Game extends Communication{
             } catch (NumberFormatException e) {
                 System.out.println("Input needs to be a number!");
             }
-
-            write(currentPlayer.getWriter(), "Invalid move. Please try again!\n");
+            write(currentPlayer.getWriter(), "Invalid move! Please try again.");
             flush(currentPlayer.getWriter());
         }
 
@@ -146,10 +145,10 @@ public class Game extends Communication{
     }
 
     public boolean isValidMove(Player currentPlayer, int cardNumber){
-        if(this.cards.isEmpty()) return true;
 
         if(cardNumber < currentPlayer.getHandCardsCount() && cardNumber >= 0){
             Card card = currentPlayer.getCard(cardNumber);
+            if(this.cards.isEmpty()) return true;
             Card boardCard = this.cards.peek();
             return card.getValue() >= boardCard.getValue();
         }

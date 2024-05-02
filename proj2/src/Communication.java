@@ -15,6 +15,11 @@ public abstract class Communication {
     }
 
     public String read(BufferedReader reader) throws IOException {
-        return reader.readLine();
+        String result = null;
+        while(result == null){
+            result = reader.readLine();
+            System.out.println(result);
+        }
+        return result;
     }
 }

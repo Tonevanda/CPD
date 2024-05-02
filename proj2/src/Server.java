@@ -30,7 +30,6 @@ public class Server {
     final static String dbPath = "./database/database.json";
     private final ReentrantLock lock = new ReentrantLock();
 
-
     public static void main(String[] args) {
         Server server = new Server();
         server.startServer();
@@ -76,9 +75,8 @@ public class Server {
                 socket.close();
             }
         }
-
-        if(this.simplePlayers.size() >= NUM_PLAYERS) manageSimple();
-        else if(this.rankedPlayers.size() >= NUM_PLAYERS) manageRanked();
+        manageSimple();
+        manageRanked();
     }
 
     private void startServer(){
@@ -116,30 +114,34 @@ public class Server {
         }
     }
 
-    private void manageRanked() throws InterruptedException {
-        System.out.println("Managing ranked game");
-        this.rankedPlayers.sort((p1, p2) -> (p2.getRank() - p1.getRank()));
+    private synchronized void manageRanked(){
+        if(this.rankedPlayers.size() >= NUM_PLAYERS) {
+            System.out.println("Managing ranked game");
+            this.rankedPlayers.sort((p1, p2) -> (p2.getRank() - p1.getRank()));
 
-        List<Player> gamePlayers = new ArrayList<>();
-        for (int i  = 0; i < NUM_PLAYERS; i++){
-            gamePlayers.add(this.rankedPlayers.getFirst());
-            this.rankedPlayers.removeFirst();
+            List<Player> gamePlayers = new ArrayList<>();
+            for (int i = 0; i < NUM_PLAYERS; i++) {
+                gamePlayers.add(this.rankedPlayers.getFirst());
+                this.rankedPlayers.removeFirst();
+            }
+
+            startGame(gamePlayers);
         }
-
-        startGame(gamePlayers);
     }
 
-    private void manageSimple() throws InterruptedException {
-        System.out.println("Managing simple game");
+    private void manageSimple(){
 
-        // Get the first NUM_PLAYERS players
-        List<Player> gamePlayers = new ArrayList<>();
-        for (int i  = 0; i < NUM_PLAYERS; i++){
-            gamePlayers.add(this.simplePlayers.poll());
+        if(this.simplePlayers.size() >= NUM_PLAYERS) {
+            System.out.println("Managing simple game");
+            // Get the first NUM_PLAYERS players
+            List<Player> gamePlayers = new ArrayList<>();
+            for (int i = 0; i < NUM_PLAYERS; i++) {
+                gamePlayers.add(this.simplePlayers.poll());
+            }
+
+            // Start the game
+            startGame(gamePlayers);
         }
-
-        // Start the game
-        startGame(gamePlayers);
     }
 
     private void startGame(List<Player> players) {
