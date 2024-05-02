@@ -2,16 +2,11 @@ public class Card {
 
     final private int _value;
 
-
     Card(int value){
         this._value = value;
-
     }
 
     public int getValue() { return _value; }
-
-
-
 
     public String draw(int row, int width, int height){
         String text = "";
@@ -40,10 +35,6 @@ public class Card {
             text = text.concat("|");
         }
 
-
-
         return text;
-
-
     }
 }

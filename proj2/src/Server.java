@@ -22,45 +22,59 @@ import org.json.JSONObject;
 public class Server {
 
     Queue<Player> simplePlayers = new LinkedList<>();
-
     List<Player> rankedPlayers = new ArrayList<>();
+    Map<String, Player> currentAuths = new HashMap<>();
+
     final int port = 8080;
     final static int NUM_PLAYERS = 2;
     final static String dbPath = "./database/database.json";
-    private ReentrantLock lock = new ReentrantLock();
-    
+    private final ReentrantLock lock = new ReentrantLock();
+
 
     public static void main(String[] args) {
         Server server = new Server();
         server.startServer();
     }
 
-    private void handleAuthentication(Socket socket, BufferedReader reader, PrintWriter writer) throws IOException, SocketException, InterruptedException {
+    private void handleClient(Socket socket, BufferedReader reader, PrintWriter writer) throws IOException, InterruptedException{
+        Player player = handleAuthentication(reader, writer);
+        handleMenu(socket, reader, writer, player);
+    }
+
+    private Player handleAuthentication(BufferedReader reader, PrintWriter writer) throws IOException {
+        // Authenticate the client
         int rank = -1;
         String response;
         String name = "";
         while(rank == -1){
             response = reader.readLine();
-            name = response.split(":")[0];
-            String password = response.split(":")[1];
+            name = response;
+            String password = reader.readLine();
             rank = authenticateClient(name, password, writer);
         }
-
+        Player player = new Player(name, rank, writer, reader);
+        currentAuths.put(name, player);
         System.out.println("New client connected: " + name);
-
-
         System.out.println("User authenticated: " + name + " with rank: " + rank);
+        return player;
+    }
+
+    private void handleMenu(Socket socket, BufferedReader reader, PrintWriter writer, Player player) throws IOException, InterruptedException {
+        // Ask the user which gamemode they want to play
         writer.println("Which gamemode do you wish to play?");
         writer.println("A -> Simple   B -> Ranked");
+        writer.println("Press Q if you want to quit");
         writer.flush();
 
-        response = reader.readLine();
-
-        // If rank is -1, the user was not authenticated
-        if(rank >= 0){
-            Player player = new Player(name, rank, writer, reader);
+        String response = reader.readLine();
+        if(player.getRank() >= 0){
             if(response.equals("A")) simplePlayers.add(player);
             else if(response.equals("B")) rankedPlayers.add(player);
+            else if (response.equals("Q")) {
+                writer.println("Goodbye!");
+                writer.flush();
+                socket.close();
+            }
         }
 
         if(this.simplePlayers.size() >= NUM_PLAYERS) manageSimple();
@@ -84,7 +98,7 @@ public class Server {
 
                 Thread.startVirtualThread(()->{
                     try {
-                        handleAuthentication(socket, reader, writer);
+                        handleClient(socket, reader, writer);
                     } catch (IOException e) {
                         System.out.println("Error handling authentication: " + e.getMessage());
                         e.printStackTrace();
@@ -92,7 +106,6 @@ public class Server {
                         throw new RuntimeException(e);
                     }
                 });
-
 
                 System.out.println("Server running");
             }
@@ -107,7 +120,6 @@ public class Server {
         System.out.println("Managing ranked game");
         this.rankedPlayers.sort((p1, p2) -> (p2.getRank() - p1.getRank()));
 
-
         List<Player> gamePlayers = new ArrayList<>();
         for (int i  = 0; i < NUM_PLAYERS; i++){
             gamePlayers.add(this.rankedPlayers.getFirst());
@@ -119,13 +131,14 @@ public class Server {
 
     private void manageSimple() throws InterruptedException {
         System.out.println("Managing simple game");
+
         // Get the first NUM_PLAYERS players
         List<Player> gamePlayers = new ArrayList<>();
         for (int i  = 0; i < NUM_PLAYERS; i++){
             gamePlayers.add(this.simplePlayers.poll());
         }
 
-            // Start the game
+        // Start the game
         startGame(gamePlayers);
     }
 
@@ -148,8 +161,7 @@ public class Server {
 
     private void updateRank(String name, int newRank){
         JSONArray db = loadJson();
-        
-        boolean found = false;
+
         lock.lock();
         try {
             for(int i = 0; i < db.length(); i++){
@@ -158,13 +170,13 @@ public class Server {
                     db.getJSONObject(i).put("rank", newRank);
                     System.out.println(db.getJSONObject(i).getInt("rank") + db.getJSONObject(i).getString("username"));
                     saveJson(db);
-                    found = true;
+                    return;
                 }
             }
         } finally {
             lock.unlock();
-            if (found) return;
         }
+
         System.out.println("Can't update rank, because user does not exist");
     }
 
@@ -177,6 +189,16 @@ public class Server {
             // Check if the name and password are in the database
             for(int i = 0; i < db.length(); i++){
                 if(db.getJSONObject(i).getString("username").equals(name) && db.getJSONObject(i).getString("password").equals(password)){
+                    if(currentAuths.containsKey(name)){
+                        Player player = currentAuths.get(name);
+                        if(player.getTimedOut()){
+                            player.setTimedOut(false);
+                            return player.getRank();
+                        }
+                        writer.println("User already authenticated");
+                        writer.flush();
+                        return -1;
+                    }
                     writer.println("Successfully authenticated!");
                     writer.flush();
                     return db.getJSONObject(i).getInt("rank");

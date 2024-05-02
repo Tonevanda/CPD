@@ -1,5 +1,6 @@
 import java.net.*;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 /**
@@ -44,15 +45,12 @@ public class Client {
 
             Scanner scanner = new Scanner(System.in);
 
-
-
-            boolean isQuit = false;
-
-            while(!isQuit) {
+            while(state != State.QUIT) {
                 switch (state) {
                     case AUTHENTICATION -> {
-                        String credentials = getCredentials(scanner);
-                        writer.println(credentials);
+                        ArrayList<String> credentials = getCredentials(scanner);
+                        writer.println(credentials.get(0));
+                        writer.println(credentials.get(1));
                         String response = reader.readLine();
                         System.out.println(response);
                         if(response.endsWith("!")) {
@@ -62,11 +60,13 @@ public class Client {
                         }
                     }
                     case MENU -> {
-
                         String action = scanner.nextLine();
                         if(action.equals("A") || action.equals("B")){
                             writer.println(action);
                             state = State.GAME;
+                        } else if (action.equals("Q")) {
+                            writer.println(action);
+                            state = State.QUIT;
                         }
                         else System.out.println("Invalid input! Please Submit A or B.");
                     }
@@ -77,35 +77,32 @@ public class Client {
                             String move = scanner.nextLine();
                             writer.println(move);
                         }
-                        else if(response.endsWith("!")) isQuit = true;
+                        else if(response.endsWith("!")) state = State.MENU;
                     }
                 }
             }
 
-
             writer.close();
 
-
         } catch (UnknownHostException ex) {
-
             System.out.println("Server not found: " + ex.getMessage());
-
         } catch (IOException ex) {
-
             System.out.println("I/O error: " + ex.getMessage());
         }
     }
 
-    // TODO: Hide password input
-    private String getCredentials(Scanner scanner) {
-
-
+    private ArrayList<String> getCredentials(Scanner scanner) {
+        ArrayList<String> credentials = new ArrayList<>();
         System.out.println("Enter your name: ");
         String name = scanner.nextLine();
+
+        credentials.add(name);
 
         System.out.println("Enter your password: ");
         String password = scanner.nextLine();
 
-        return name + ":" + password;
+        credentials.add(password);
+
+        return credentials;
     }
 }

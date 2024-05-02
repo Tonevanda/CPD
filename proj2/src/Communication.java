@@ -6,8 +6,6 @@ import java.util.List;
 
 public abstract class Communication {
 
-
-
     public void write(PrintWriter writer, String text){
         writer.println(text);
     }
