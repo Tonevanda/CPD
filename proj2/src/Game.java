@@ -2,11 +2,11 @@ import java.io.IOException;
 import java.util.*;
 
 public class Game extends Communication{
-    private List<Player> players;
+    private final List<Player> players;
 
-    private List<Player> currentPlayers = new ArrayList<>();
+    private final List<Player> currentPlayers = new ArrayList<>();
 
-    private Stack<Card> cards = new Stack<>();
+    private final Stack<Card> cards = new Stack<>();
 
     final private int _cardHeight = 10;
     final private int _cardWidth = 20;

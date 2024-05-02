@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class Player{
-    private String _name;
+    private final String _name;
     private int _rank;
 
     final private PrintWriter _writer;
@@ -14,11 +14,11 @@ public class Player{
 
     private List<Card> deck;
 
-    private List<Card> hand = new ArrayList<>();
+    private final List<Card> hand = new ArrayList<>();
 
     private List<Card> _discardPile = new ArrayList<>();
 
-    private int _maxHandSize = 5;
+    private final int _maxHandSize = 5;
 
     private String _text = "";
     private boolean _timedOut = false;

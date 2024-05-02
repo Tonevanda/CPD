@@ -1,9 +1,7 @@
 import java.io.*;
 import java.net.*;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.*;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -58,7 +56,7 @@ public class Server {
         return player;
     }
 
-    private void handleMenu(Socket socket, BufferedReader reader, PrintWriter writer, Player player) throws IOException, InterruptedException {
+    private void handleMenu(Socket socket, BufferedReader reader, PrintWriter writer, Player player) throws IOException{
         // Ask the user which gamemode they want to play
         writer.println("Which gamemode do you wish to play?");
         writer.println("A -> Simple   B -> Ranked");
@@ -67,12 +65,14 @@ public class Server {
 
         String response = reader.readLine();
         if(player.getRank() >= 0){
-            if(response.equals("A")) simplePlayers.add(player);
-            else if(response.equals("B")) rankedPlayers.add(player);
-            else if (response.equals("Q")) {
-                writer.println("Goodbye!");
-                writer.flush();
-                socket.close();
+            switch (response) {
+                case "A" -> simplePlayers.add(player);
+                case "B" -> rankedPlayers.add(player);
+                case "Q" -> {
+                    writer.println("Goodbye!");
+                    writer.flush();
+                    socket.close();
+                }
             }
         }
         manageSimple();
@@ -182,7 +182,7 @@ public class Server {
         System.out.println("Can't update rank, because user does not exist");
     }
 
-    private int authenticateClient(String name, String password, PrintWriter writer) throws IOException {
+    private int authenticateClient(String name, String password, PrintWriter writer){
         lock.lock();
         try {
             // Load the JSON file
