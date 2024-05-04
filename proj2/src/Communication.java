@@ -15,6 +15,8 @@ public abstract class Communication {
 
     protected final char TIMER_ENCODE = 'T';
 
+    protected final char ALIVE_ENCODE = 'A';
+
 
 
 
@@ -44,7 +46,10 @@ public abstract class Communication {
                 res.add("");
             }
             else if(response.charAt(0) == TIMER_ENCODE){
-                write(writer, "", TIMER_ENCODE);
+                write(writer, "", ALIVE_ENCODE);
+                return read(reader, writer);
+            }
+            else if(response.charAt(0) == ALIVE_ENCODE){
                 return read(reader, writer);
             }
             else if(response.length() == 1){
@@ -56,6 +61,18 @@ public abstract class Communication {
                 res.add(response.substring(1));
             }
             return res;
+        }catch(SocketException e){
+            throw e;
+        }
+    }
+
+    public void isConnectionAlive(BufferedReader reader) throws IOException {
+        try {
+
+            if (reader.ready()) {
+                String response = reader.readLine();
+                System.out.println("Read message: ".concat(response));
+            }
         }catch(SocketException e){
             throw e;
         }

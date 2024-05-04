@@ -29,6 +29,8 @@ public class Server extends Communication{
     final static int NUM_PLAYERS = 2;
     final static String dbPath = "./database/database.json";
 
+    private final int TIMER_INTERVAL = 1000;
+
     private final List<ReentrantLock> locks = new ArrayList<>();
 
     enum State{
@@ -54,8 +56,13 @@ public class Server extends Communication{
     private void handleClient(Socket socket, BufferedReader reader, PrintWriter writer) throws IOException, InterruptedException{
         State state = State.AUTHENTICATION;
         Player player = null;
-        int i = 0;
-        int count = 0;
+
+        Timer timer = new Timer();
+
+        ServerTimer timerTask = new ServerTimer(writer);
+
+        timer.schedule(timerTask, 0, TIMER_INTERVAL);
+
 
         try {
             while (state != State.QUIT) {
@@ -73,19 +80,19 @@ public class Server extends Communication{
                             manageSimple();
                             manageRanked();
                             state = State.QUEUE;
+                            timerTask.setTime(0);
+                            timerTask.setVerifyConnection(true, 3);
                         }
 
                     }
                     case QUEUE -> {
+                        isConnectionAlive(reader);
                         if (this.currentAuths.get(player.getName()).getInGame()) {
                             state = State.GAME;
-                        } else {
-                            i++;
-                            if (i % 1000000000 == 0) {
-                                write(player.getWriter(), CLEAR_SCREEN.concat("Waiting for game to start. ").concat(Integer.toString(count).concat(" seconds have passed")), '1');
-                                flush(player.getWriter());
-                                count++;
-                            }
+                            timerTask.setVerifyConnection(false, 3);
+                        } else if (timerTask.timeChanged()){
+                            write(player.getWriter(), CLEAR_SCREEN.concat("Waiting for game to start. ").concat(Integer.toString(timerTask.getTime()).concat(" seconds have passed")), '1');
+                            flush(player.getWriter());
                         }
                     }
                     case GAME -> {
