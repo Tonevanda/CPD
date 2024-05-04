@@ -33,12 +33,12 @@ public class Game extends Communication{
 
     public void run() throws IOException {
         System.out.println("Game started");
-        broadcast(CLEAR_SCREEN, '2');
+        broadcast(CLEAR_SCREEN);
         int currentScore = 0;
         while(true){
             Player currentPlayer = this.currentPlayers.getFirst();
 
-            String text = '2'+CLEAR_SCREEN;
+            String text = CLEAR_SCREEN;
             text = text.concat(drawPlayers()).concat("\n");
 
             text = text.concat(drawPlayingCards()).concat("\n");
@@ -130,7 +130,7 @@ public class Game extends Communication{
         int cardNumber;
 
         while(true) {
-            String move = read(currentPlayer.getReader());
+            String move = read(currentPlayer.getReader(), currentPlayer.getWriter()).getLast();
             try {
                 cardNumber = Integer.parseInt(move);
                 if(isValidMove(currentPlayer, cardNumber-1)){

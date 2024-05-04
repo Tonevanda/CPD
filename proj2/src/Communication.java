@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,17 +11,23 @@ public abstract class Communication {
 
     protected final String CLEAR_SCREEN = "\033[H\033[2J";
 
+    protected final char NO_ENCODE = 'N';
+
+    protected final char TIMER_ENCODE = 'T';
 
 
 
 
 
-    public void write(PrintWriter writer, String text){
-        writer.println(text);
-    }
+
+
 
 
     public void write(PrintWriter writer, String text, char encoding){ writer.println(encoding + text);}
+
+    public void write(PrintWriter writer, String text){
+        write(writer, text, NO_ENCODE);
+    }
 
     public void flush(PrintWriter writer){
         writer.flush();
@@ -28,28 +35,34 @@ public abstract class Communication {
 
 
 
-    public String read(BufferedReader reader) throws IOException {
-        return reader.readLine();
-    }
-    public String getMessage(String message) throws IOException {
-        if(message.length() <= 1)return message;
-        return message.substring(1);
-    }
-
-    public char readEncoded(String message){
-        if(message.isEmpty()) return 'N';
-        return message.charAt(0);
-    }
-
-    public void broadcast(String text){
-        for(PrintWriter writer : writers){
-            write(writer, text);
+    public List<String> read(BufferedReader reader, PrintWriter writer) throws IOException {
+        try {
+            List<String> res = new ArrayList<>();
+            String response = reader.readLine();
+            if(response.isEmpty()){
+                res.add(Character.toString(NO_ENCODE));
+                res.add("");
+            }
+            else if(response.charAt(0) == TIMER_ENCODE){
+                write(writer, "", TIMER_ENCODE);
+                return read(reader, writer);
+            }
+            else if(response.length() == 1){
+                res.add(Character.toString(NO_ENCODE));
+                res.add("");
+            }
+            else{
+                res.add(Character.toString(response.charAt(0)));
+                res.add(response.substring(1));
+            }
+            return res;
+        }catch(SocketException e){
+            throw e;
         }
-
-        for(PrintWriter writer : writers){
-            flush(writer);
-        }
     }
+
+
+
     public void broadcast(String text, char encoding){
         for(PrintWriter writer : writers){
             write(writer, text, encoding);
@@ -58,5 +71,9 @@ public abstract class Communication {
         for(PrintWriter writer : writers){
             flush(writer);
         }
+    }
+
+    public void broadcast(String text){
+        broadcast(text, NO_ENCODE);
     }
 }

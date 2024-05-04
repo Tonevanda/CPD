@@ -54,41 +54,50 @@ public class Server extends Communication{
     private void handleClient(Socket socket, BufferedReader reader, PrintWriter writer) throws IOException, InterruptedException{
         State state = State.AUTHENTICATION;
         Player player = null;
-        boolean isQuit = false;
         int i = 0;
         int count = 0;
-        while(!isQuit) {
-            switch (state) {
-                case AUTHENTICATION -> {
-                    player = handleAuthentication(reader, writer);
-                    state = State.MENU;
-                }
-                case MENU -> {
-                    //System.out.println(this.currentAuths);
-                    if (!this.currentAuths.get(player.getName()).getInGame()){
-                        handleMenu(socket, reader, writer, player);
-                        manageSimple();
-                        manageRanked();
-                        state = State.QUEUE;
-                    }
-                }
-                case QUEUE -> {
-                    if(this.currentAuths.get(player.getName()).getInGame()){
+
+        try {
+            while (state != State.QUIT) {
+                switch (state) {
+                    case AUTHENTICATION -> {
+                        player = handleAuthentication(reader, writer);
                         state = State.MENU;
                     }
-                    else{
-                        i++;
-                        if(i % 1000000000 == 0) {
-                            write(player.getWriter(), CLEAR_SCREEN.concat("Waiting for game to start. ").concat(Integer.toString(count).concat(" seconds have passed")), '1');
-                            flush(player.getWriter());
-                            count++;
+                    case MENU -> {
+                        if(handleMenu(socket, reader, writer, player)){
+                            state = State.QUIT;
+                            this.currentAuths.remove(player.getName());
+                        }
+                        else{
+                            manageSimple();
+                            manageRanked();
+                            state = State.QUEUE;
+                        }
+
+                    }
+                    case QUEUE -> {
+                        if (this.currentAuths.get(player.getName()).getInGame()) {
+                            state = State.GAME;
+                        } else {
+                            i++;
+                            if (i % 1000000000 == 0) {
+                                write(player.getWriter(), CLEAR_SCREEN.concat("Waiting for game to start. ").concat(Integer.toString(count).concat(" seconds have passed")), '1');
+                                flush(player.getWriter());
+                                count++;
+                            }
                         }
                     }
-                }
-                case QUIT -> {
-                    isQuit = true;
+                    case GAME -> {
+                        if (!this.currentAuths.get(player.getName()).getInGame()){
+                            state = State.MENU;
+                        }
+                    }
+
                 }
             }
+        }catch(SocketException e){
+            System.out.println("hellloooooooooooooooooooooooo");
         }
 
 
@@ -97,13 +106,15 @@ public class Server extends Communication{
     private Player handleAuthentication(BufferedReader reader, PrintWriter writer) throws IOException {
         // Authenticate the client
         int rank = -1;
-        String response;
         String name = "";
-        while(rank == -1){
-            response = read(reader);
-            name = response;
-            String password = read(reader);
-            rank = authenticateClient(name, password, writer);
+        try {
+            while (rank == -1) {
+                name = read(reader, writer).getLast();
+                String password = read(reader, writer).getLast();
+                rank = authenticateClient(name, password, writer);
+            }
+        }catch(SocketException e){
+            throw e;
         }
         Player player = new Player(name, rank, writer, reader);
         currentAuths.put(name, player);
@@ -114,25 +125,30 @@ public class Server extends Communication{
 
     }
 
-    private void handleMenu(Socket socket, BufferedReader reader, PrintWriter writer, Player player) throws IOException{
+    private boolean handleMenu(Socket socket, BufferedReader reader, PrintWriter writer, Player player) throws IOException{
         // Ask the user which gamemode they want to play
         write(writer, "Which gamemode do you wish to play?");
         write(writer, "A -> Simple   B -> Ranked");
         write(writer, "Press Q if you want to quit");
         flush(writer);
+        String response;
+        try{
+            response = read(reader, writer).getLast();
+        }catch(SocketException e){
+            throw e;
+        }
 
-        String response = read(reader);
         if(player.getRank() >= 0){
             switch (response) {
                 case "A" -> simplePlayers.add(player);
                 case "B" -> rankedPlayers.add(player);
                 case "Q" -> {
-                    write(writer, "Goodbye!");
-                    flush(writer);
-                    socket.close();
+                    return true;
                 }
             }
         }
+
+        return false;
 
     }
 
@@ -143,7 +159,6 @@ public class Server extends Communication{
 
             while (true) {
                 Socket socket = serverSocket.accept();
-                socket.setKeepAlive(true);
 
                 InputStream input = socket.getInputStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(input));

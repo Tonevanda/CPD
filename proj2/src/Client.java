@@ -1,6 +1,7 @@
 import java.net.*;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -53,47 +54,46 @@ public class Client extends Communication{
                         ArrayList<String> credentials = getCredentials(scanner);
                         write(writer, credentials.getFirst());
                         write(writer, credentials.getLast());
-                        String response = read(reader);
-                        char encoding = readEncoded(response);
-                        response = getMessage(response);
-                        System.out.println(response);
-                        if(encoding == '0') {
+                        List<String> response = read(reader, writer);
+                        System.out.println(response.getLast());
+                        if(response.getFirst().equals("0")) {
                             state = State.MENU;
-                            System.out.println(read(reader));
-                            System.out.println(read(reader));
-                            System.out.println(read(reader));
+                            System.out.println(read(reader, writer).getLast());
+                            System.out.println(read(reader, writer).getLast());
+                            System.out.println(read(reader, writer).getLast());
                         }
                     }
                     case MENU -> {
                         String action = scanner.nextLine();
-                        if(action.equals("A") || action.equals("B")){
+                        if(action.equalsIgnoreCase("a") || action.equalsIgnoreCase("b")){
                             write(writer, action);
                             state = State.QUEUE;
-                        } else if (action.equals("Q")) {
+                        } else if (action.equalsIgnoreCase("q")) {
                             write(writer, action);
                             state = State.QUIT;
                         }
-                        else System.out.println("Invalid input! Please Submit A or B.");
+                        else System.out.println("Invalid input! Please Submit A, B or Q.");
                     }
                     case QUEUE -> {
-                        String response = read(reader);
-                        char encoding = readEncoded(response);
-                        response = getMessage(response);
-                        System.out.println(response);
-                        if(encoding == '0'){
+                        List<String> response = read(reader, writer);
+                        System.out.println(response.getLast());
+                        if(response.getFirst().equals("0")){
                             state = State.GAME;
                         }
                     }
                     case GAME -> {
-                        String response = read(reader);
-                        char encoding = readEncoded(response);
-                        response = getMessage(response);
-                        System.out.println(response);
-                        if(encoding == '0'){
+                        List<String> response = read(reader, writer);
+                        System.out.println(response.getLast());
+                        if(response.getFirst().equals("0")){
                             String move = scanner.nextLine();
                             write(writer, move);
                         }
-                        else if(encoding == '1') state = State.MENU;
+                        else if(response.getFirst().equals("1")) {
+                            state = State.MENU;
+                            System.out.println(read(reader, writer).getLast());
+                            System.out.println(read(reader, writer).getLast());
+                            System.out.println(read(reader, writer).getLast());
+                        }
                     }
                 }
             }
