@@ -79,8 +79,7 @@ public class Server extends Communication{
                     else{
                         i++;
                         if(i % 1000000000 == 0) {
-                            write(writer, CLEAR_SCREEN);
-                            write(player.getWriter(), "Waiting for game to start. ".concat(Integer.toString(count).concat(" seconds have passed")));
+                            write(player.getWriter(), CLEAR_SCREEN.concat("Waiting for game to start. ").concat(Integer.toString(count).concat(" seconds have passed")), '1');
                             flush(player.getWriter());
                             count++;
                         }
@@ -270,15 +269,15 @@ public class Server extends Communication{
                             player.setTimedOut(false);
                             return player.getRank();
                         }
-                        write(writer, "User already authenticated");
+                        write(writer, "User already authenticated", '1');
                         flush(writer);
                         return -1;
                     }
-                    write(writer, "Successfully authenticated!");
+                    write(writer, "Successfully authenticated!", '0');
                     flush(writer);
                     return db.getJSONObject(i).getInt("rank");
                 } else if (db.getJSONObject(i).getString("username").equals(name) && !db.getJSONObject(i).getString("password").equals(password)) {
-                    write(writer, "Wrong password");
+                    write(writer, "Wrong password", '1');
                     flush(writer);
                     return -1;
                 }
@@ -286,7 +285,7 @@ public class Server extends Communication{
             // If the name is not in the database, create new user account
             JSONObject user = createUser(name, password);
             db.put(user);
-            write(writer, "New account has been created!");
+            write(writer, "New account has been created!", '0');
             flush(writer);
         
             // Save the new user account to the database

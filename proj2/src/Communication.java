@@ -20,9 +20,7 @@ public abstract class Communication {
     }
 
 
-    public void write(PrintWriter writer, String text, String encoding){
-        writer.println(encoding.concat(text));
-    }
+    public void write(PrintWriter writer, String text, char encoding){ writer.println(encoding + text);}
 
     public void flush(PrintWriter writer){
         writer.flush();
@@ -33,12 +31,15 @@ public abstract class Communication {
     public String read(BufferedReader reader) throws IOException {
         return reader.readLine();
     }
-    public String readEncoded(BufferedReader reader) throws IOException {
-        return reader.readLine().substring(1);
+    public String getMessage(String message) throws IOException {
+        if(message.length() <= 1)return message;
+        return message.substring(1);
     }
 
-
-
+    public char readEncoded(String message){
+        if(message.isEmpty()) return 'N';
+        return message.charAt(0);
+    }
 
     public void broadcast(String text){
         for(PrintWriter writer : writers){
@@ -49,7 +50,7 @@ public abstract class Communication {
             flush(writer);
         }
     }
-    public void broadcast(String text, String encoding){
+    public void broadcast(String text, char encoding){
         for(PrintWriter writer : writers){
             write(writer, text, encoding);
         }

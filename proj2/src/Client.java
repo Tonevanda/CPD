@@ -16,6 +16,8 @@ public class Client extends Communication{
     enum State{
         AUTHENTICATION,
         MENU,
+
+        QUEUE,
         GAME,
         QUIT
     }
@@ -51,33 +53,47 @@ public class Client extends Communication{
                         ArrayList<String> credentials = getCredentials(scanner);
                         write(writer, credentials.getFirst());
                         write(writer, credentials.getLast());
-                        String response = reader.readLine();
+                        String response = read(reader);
+                        char encoding = readEncoded(response);
+                        response = getMessage(response);
                         System.out.println(response);
-                        if(response.endsWith("!")) {
+                        if(encoding == '0') {
                             state = State.MENU;
-                            System.out.println(reader.readLine());
-                            System.out.println(reader.readLine());
+                            System.out.println(read(reader));
+                            System.out.println(read(reader));
+                            System.out.println(read(reader));
                         }
                     }
                     case MENU -> {
                         String action = scanner.nextLine();
                         if(action.equals("A") || action.equals("B")){
                             write(writer, action);
-                            state = State.GAME;
+                            state = State.QUEUE;
                         } else if (action.equals("Q")) {
                             write(writer, action);
                             state = State.QUIT;
                         }
                         else System.out.println("Invalid input! Please Submit A or B.");
                     }
-                    case GAME -> {
-                        String response = reader.readLine();
+                    case QUEUE -> {
+                        String response = read(reader);
+                        char encoding = readEncoded(response);
+                        response = getMessage(response);
                         System.out.println(response);
-                        if(response.endsWith(".")){
+                        if(encoding == '0'){
+                            state = State.GAME;
+                        }
+                    }
+                    case GAME -> {
+                        String response = read(reader);
+                        char encoding = readEncoded(response);
+                        response = getMessage(response);
+                        System.out.println(response);
+                        if(encoding == '0'){
                             String move = scanner.nextLine();
                             write(writer, move);
                         }
-                        else if(response.endsWith("!")) state = State.MENU;
+                        else if(encoding == '1') state = State.MENU;
                     }
                 }
             }
@@ -101,7 +117,6 @@ public class Client extends Communication{
         System.out.println("Enter your password: ");
         String password = scanner.nextLine();
 
-        System.out.println(password);
 
         credentials.add(password);
 

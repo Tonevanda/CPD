@@ -22,6 +22,8 @@ public class Game extends Communication{
             this.currentPlayers.add(player);
         }
 
+        broadcast("Game started!", '0');
+
         this.players = players;
     }
 
@@ -31,12 +33,12 @@ public class Game extends Communication{
 
     public void run() throws IOException {
         System.out.println("Game started");
-        broadcast(CLEAR_SCREEN);
+        broadcast(CLEAR_SCREEN, '2');
         int currentScore = 0;
         while(true){
             Player currentPlayer = this.currentPlayers.getFirst();
 
-            String text = CLEAR_SCREEN;
+            String text = '2'+CLEAR_SCREEN;
             text = text.concat(drawPlayers()).concat("\n");
 
             text = text.concat(drawPlayingCards()).concat("\n");
@@ -55,13 +57,13 @@ public class Game extends Communication{
 
 
             if(!this.cards.isEmpty() && currentPlayer.hasLost(this.cards.peek())){
-                write(currentPlayer.getWriter(), "you lost!");
+                write(currentPlayer.getWriter(), "you lost!", '1');
                 flush(currentPlayer.getWriter());
                 currentPlayer.updateRank(currentScore, false);
                 currentScore += SCORE_RANGE/(this.players.size()-1);
             }
             else {
-                write(currentPlayer.getWriter(), "your move.");
+                write(currentPlayer.getWriter(), "your move.", '0');
                 flush(currentPlayer.getWriter());
                 makeMove(currentPlayer);
                 this.currentPlayers.add(currentPlayer);
@@ -75,7 +77,7 @@ public class Game extends Communication{
         }
 
         Player winner = this.currentPlayers.getFirst();
-        write(winner.getWriter(), "Congratulations, you won!");
+        write(winner.getWriter(), "Congratulations, you won!", '1');
         flush(winner.getWriter());
         winner.updateRank(currentScore, true);
         //giveScore(winner.getName(), currentScore, true);
@@ -125,7 +127,7 @@ public class Game extends Communication{
 
     public void makeMove(Player currentPlayer) throws IOException {
 
-        int cardNumber = 1;
+        int cardNumber;
 
         while(true) {
             String move = read(currentPlayer.getReader());
@@ -135,9 +137,11 @@ public class Game extends Communication{
                     break;
                 }
             } catch (NumberFormatException e) {
-                System.out.println("Input needs to be a number!");
+                write(currentPlayer.getWriter(), "Input needs to be a number!", '0');
+                flush(currentPlayer.getWriter());
+                continue;
             }
-            write(currentPlayer.getWriter(), "Invalid move! Please try again.");
+            write(currentPlayer.getWriter(), "Invalid move! Please try again.", '0');
             flush(currentPlayer.getWriter());
         }
 
