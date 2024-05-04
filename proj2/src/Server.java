@@ -12,30 +12,87 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+
 /**
  * This program demonstrates a simple TCP/IP socket server.
  *
  * @author www.codejava.net
  */
-public class Server {
+public class Server extends Communication{
 
     Queue<Player> simplePlayers = new LinkedList<>();
     List<Player> rankedPlayers = new ArrayList<>();
     Map<String, Player> currentAuths = new HashMap<>();
 
+
     final int port = 8080;
     final static int NUM_PLAYERS = 2;
     final static String dbPath = "./database/database.json";
-    private final ReentrantLock lock = new ReentrantLock();
+
+    private final List<ReentrantLock> locks = new ArrayList<>();
+
+    enum State{
+        AUTHENTICATION,
+        MENU,
+        QUEUE,
+        GAME,
+        QUIT
+    }
+
+
+    public Server(int numLocks){
+        for(int i = 0; i < numLocks; i++){
+            this.locks.add(new ReentrantLock());
+        }
+    }
 
     public static void main(String[] args) {
-        Server server = new Server();
+        Server server = new Server(3);
         server.startServer();
     }
 
     private void handleClient(Socket socket, BufferedReader reader, PrintWriter writer) throws IOException, InterruptedException{
-        Player player = handleAuthentication(reader, writer);
-        handleMenu(socket, reader, writer, player);
+        State state = State.AUTHENTICATION;
+        Player player = null;
+        boolean isQuit = false;
+        int i = 0;
+        int count = 0;
+        while(!isQuit) {
+            switch (state) {
+                case AUTHENTICATION -> {
+                    player = handleAuthentication(reader, writer);
+                    state = State.MENU;
+                }
+                case MENU -> {
+                    //System.out.println(this.currentAuths);
+                    if (!this.currentAuths.get(player.getName()).getInGame()){
+                        handleMenu(socket, reader, writer, player);
+                        manageSimple();
+                        manageRanked();
+                        state = State.QUEUE;
+                    }
+                }
+                case QUEUE -> {
+                    if(this.currentAuths.get(player.getName()).getInGame()){
+                        state = State.MENU;
+                    }
+                    else{
+                        i++;
+                        if(i % 1000000000 == 0) {
+                            write(writer, CLEAR_SCREEN);
+                            write(player.getWriter(), "Waiting for game to start. ".concat(Integer.toString(count).concat(" seconds have passed")));
+                            flush(player.getWriter());
+                            count++;
+                        }
+                    }
+                }
+                case QUIT -> {
+                    isQuit = true;
+                }
+            }
+        }
+
+
     }
 
     private Player handleAuthentication(BufferedReader reader, PrintWriter writer) throws IOException {
@@ -44,39 +101,40 @@ public class Server {
         String response;
         String name = "";
         while(rank == -1){
-            response = reader.readLine();
+            response = read(reader);
             name = response;
-            String password = reader.readLine();
+            String password = read(reader);
             rank = authenticateClient(name, password, writer);
         }
         Player player = new Player(name, rank, writer, reader);
         currentAuths.put(name, player);
         System.out.println("New client connected: " + name);
         System.out.println("User authenticated: " + name + " with rank: " + rank);
+
         return player;
+
     }
 
     private void handleMenu(Socket socket, BufferedReader reader, PrintWriter writer, Player player) throws IOException{
         // Ask the user which gamemode they want to play
-        writer.println("Which gamemode do you wish to play?");
-        writer.println("A -> Simple   B -> Ranked");
-        writer.println("Press Q if you want to quit");
-        writer.flush();
+        write(writer, "Which gamemode do you wish to play?");
+        write(writer, "A -> Simple   B -> Ranked");
+        write(writer, "Press Q if you want to quit");
+        flush(writer);
 
-        String response = reader.readLine();
+        String response = read(reader);
         if(player.getRank() >= 0){
             switch (response) {
                 case "A" -> simplePlayers.add(player);
                 case "B" -> rankedPlayers.add(player);
                 case "Q" -> {
-                    writer.println("Goodbye!");
-                    writer.flush();
+                    write(writer, "Goodbye!");
+                    flush(writer);
                     socket.close();
                 }
             }
         }
-        manageSimple();
-        manageRanked();
+
     }
 
     private void startServer(){
@@ -114,7 +172,8 @@ public class Server {
         }
     }
 
-    private synchronized void manageRanked(){
+    private synchronized void manageRanked() throws InterruptedException {
+        locks.get(2).lock();
         if(this.rankedPlayers.size() >= NUM_PLAYERS) {
             System.out.println("Managing ranked game");
             this.rankedPlayers.sort((p1, p2) -> (p2.getRank() - p1.getRank()));
@@ -125,12 +184,16 @@ public class Server {
                 this.rankedPlayers.removeFirst();
             }
 
+            locks.get(2).unlock();
             startGame(gamePlayers);
+        }
+        else{
+            locks.get(2).unlock();
         }
     }
 
-    private void manageSimple(){
-
+    private void manageSimple() throws InterruptedException {
+        locks.get(1).lock();
         if(this.simplePlayers.size() >= NUM_PLAYERS) {
             System.out.println("Managing simple game");
             // Get the first NUM_PLAYERS players
@@ -139,18 +202,28 @@ public class Server {
                 gamePlayers.add(this.simplePlayers.poll());
             }
 
+            locks.get(1).unlock();
             // Start the game
             startGame(gamePlayers);
         }
+        else{
+            locks.get(1).unlock();
+        }
     }
 
-    private void startGame(List<Player> players) {
+    private void startGame(List<Player> players) throws InterruptedException {
+
         Thread.startVirtualThread(()->{
+
+            for(Player player : players){
+                this.currentAuths.get(player.getName()).setInGame(true);
+            }
             Collections.shuffle(players);
             Game game = new Game(players);
             try {
                 game.run();
                 for(Player player : game.get_players()){
+                    this.currentAuths.get(player.getName()).setInGame(false);
                     updateRank(player.getName(), player.getRank());
                 }
             } catch (IOException e) {
@@ -164,7 +237,7 @@ public class Server {
     private void updateRank(String name, int newRank){
         JSONArray db = loadJson();
 
-        lock.lock();
+        locks.getFirst().lock();
         try {
             for(int i = 0; i < db.length(); i++){
                 if(db.getJSONObject(i).getString("username").equals(name)){
@@ -176,14 +249,14 @@ public class Server {
                 }
             }
         } finally {
-            lock.unlock();
+            locks.getFirst().unlock();
         }
 
         System.out.println("Can't update rank, because user does not exist");
     }
 
     private int authenticateClient(String name, String password, PrintWriter writer){
-        lock.lock();
+        locks.getFirst().lock();
         try {
             // Load the JSON file
             JSONArray db = loadJson();
@@ -197,30 +270,30 @@ public class Server {
                             player.setTimedOut(false);
                             return player.getRank();
                         }
-                        writer.println("User already authenticated");
-                        writer.flush();
+                        write(writer, "User already authenticated");
+                        flush(writer);
                         return -1;
                     }
-                    writer.println("Successfully authenticated!");
-                    writer.flush();
+                    write(writer, "Successfully authenticated!");
+                    flush(writer);
                     return db.getJSONObject(i).getInt("rank");
                 } else if (db.getJSONObject(i).getString("username").equals(name) && !db.getJSONObject(i).getString("password").equals(password)) {
-                    writer.println("Wrong password");
-                    writer.flush();
+                    write(writer, "Wrong password");
+                    flush(writer);
                     return -1;
                 }
             }
             // If the name is not in the database, create new user account
             JSONObject user = createUser(name, password);
             db.put(user);
-            writer.println("New account has been created!");
-            writer.flush();
+            write(writer, "New account has been created!");
+            flush(writer);
         
             // Save the new user account to the database
             saveJson(db);
             System.out.println("Saved new user account to database");
         } finally {
-            lock.unlock();
+            locks.getFirst().unlock();
         }
 
         return 0;

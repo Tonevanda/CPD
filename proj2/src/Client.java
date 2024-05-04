@@ -8,7 +8,7 @@ import java.util.Scanner;
  *
  * @author www.codejava.net
  */
-public class Client {
+public class Client extends Communication{
 
     final static int port = 8080;
     final static String hostname = "localhost";
@@ -49,8 +49,8 @@ public class Client {
                 switch (state) {
                     case AUTHENTICATION -> {
                         ArrayList<String> credentials = getCredentials(scanner);
-                        writer.println(credentials.get(0));
-                        writer.println(credentials.get(1));
+                        write(writer, credentials.getFirst());
+                        write(writer, credentials.getLast());
                         String response = reader.readLine();
                         System.out.println(response);
                         if(response.endsWith("!")) {
@@ -62,10 +62,10 @@ public class Client {
                     case MENU -> {
                         String action = scanner.nextLine();
                         if(action.equals("A") || action.equals("B")){
-                            writer.println(action);
+                            write(writer, action);
                             state = State.GAME;
                         } else if (action.equals("Q")) {
-                            writer.println(action);
+                            write(writer, action);
                             state = State.QUIT;
                         }
                         else System.out.println("Invalid input! Please Submit A or B.");
@@ -75,7 +75,7 @@ public class Client {
                         System.out.println(response);
                         if(response.endsWith(".")){
                             String move = scanner.nextLine();
-                            writer.println(move);
+                            write(writer, move);
                         }
                         else if(response.endsWith("!")) state = State.MENU;
                     }
@@ -100,6 +100,8 @@ public class Client {
 
         System.out.println("Enter your password: ");
         String password = scanner.nextLine();
+
+        System.out.println(password);
 
         credentials.add(password);
 

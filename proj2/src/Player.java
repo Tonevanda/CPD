@@ -23,6 +23,8 @@ public class Player{
     private String _text = "";
     private boolean _timedOut = false;
 
+    private boolean _inGame = false;
+
     public Player(String name, int rank, PrintWriter writer, BufferedReader reader){
         this._name = name;
         this._rank = rank;
@@ -40,7 +42,9 @@ public class Player{
 
     public boolean getTimedOut() { return this._timedOut; }
 
-    public void setTimedOut(boolean timedOut) { this._timedOut = timedOut; }
+    public boolean getInGame() { return this._inGame; }
+
+
 
     public String getName(){
         return this._name;
@@ -58,6 +62,8 @@ public class Player{
 
     public Card getCard(int cardNumber) { return this.hand.get(cardNumber); }
 
+    public int getHandCardsCount() { return this.hand.size(); }
+
     public void updateRank(int score, boolean isWinner){
 
         if(isWinner && score - this._rank/10 < 1){
@@ -68,9 +74,15 @@ public class Player{
         if(this._rank < 0) this._rank = 0;
     }
 
+    public void setTimedOut(boolean timedOut) { this._timedOut = timedOut; }
+
+    public void setInGame(boolean inGame) { this._inGame = inGame; }
+
+
+
     public void setText(String text){ this._text = text; }
 
-    public int getHandCardsCount() { return this.hand.size(); }
+
 
     public void drawCardsAction(int quantity){
         for(int i = 0; i < quantity; i++){

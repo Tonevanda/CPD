@@ -11,11 +11,16 @@ public class Game extends Communication{
     final private int _cardHeight = 10;
     final private int _cardWidth = 20;
 
-    final private String CLEAR_BOARD = "\033[H\033[2J";
+
 
     final private int SCORE_RANGE = 20;
 
     public Game(List<Player> players){
+
+        for(Player player : players){
+            writers.add(player.getWriter());
+            this.currentPlayers.add(player);
+        }
 
         this.players = players;
     }
@@ -26,32 +31,28 @@ public class Game extends Communication{
 
     public void run() throws IOException {
         System.out.println("Game started");
-        for(Player player : this.players){
-            write(player.getWriter(), CLEAR_BOARD);
-            flush(player.getWriter());
-            this.currentPlayers.add(player);
-        }
+        broadcast(CLEAR_SCREEN);
         int currentScore = 0;
         while(true){
             Player currentPlayer = this.currentPlayers.getFirst();
 
-            String text = CLEAR_BOARD;
+            String text = CLEAR_SCREEN;
             text = text.concat(drawPlayers()).concat("\n");
 
             text = text.concat(drawPlayingCards()).concat("\n");
 
             drawHands();
 
+            broadcast(text);
+
             for(Player player : this.currentPlayers){
-                write(player.getWriter(), text);
                 write(player.getWriter(), player.getText());
+                flush(player.getWriter());
 
                 player.setText("");
             }
 
-            for(Player player : this.currentPlayers){
-                flush(player.getWriter());
-            }
+
 
             if(!this.cards.isEmpty() && currentPlayer.hasLost(this.cards.peek())){
                 write(currentPlayer.getWriter(), "you lost!");
