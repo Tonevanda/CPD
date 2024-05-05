@@ -9,13 +9,15 @@ public class Player{
     private final String _name;
     private int _rank;
 
-    final private PrintWriter _writer;
+    private PrintWriter _writer;
 
-    final private BufferedReader _reader;
+    private BufferedReader _reader;
 
     private Timer _timer;
 
     private MyTimerTask _timerTask;
+
+    private String _serverState = "MENU";
 
     private List<Card> deck;
 
@@ -26,7 +28,6 @@ public class Player{
     private final int _maxHandSize = 5;
 
     private String _text = "";
-    private boolean _disconnected = false;
 
     private boolean _inGame = false;
 
@@ -52,7 +53,8 @@ public class Player{
         drawCardsAction(_maxHandSize);
     }
 
-    public boolean getDisconnected() { return this._disconnected; }
+    public String getServerState(){return this._serverState;}
+
 
     public boolean getInGame() { return this._inGame; }
 
@@ -88,13 +90,21 @@ public class Player{
         if(this._rank < 0) this._rank = 0;
     }
 
-    public void setDisconnected(boolean disconnected) { this._disconnected = disconnected; }
 
     public void setInGame(boolean inGame) { this._inGame = inGame; }
+
+    public void setServerState(String serverState){this._serverState = serverState;}
 
 
 
     public void setText(String text){ this._text = text; }
+
+    public void setReader(BufferedReader reader){this._reader = reader;}
+
+    public void setWriter(PrintWriter writer){
+        this._writer = writer;
+        this.getTimerTask().setWriter(writer);
+    }
 
     public void closeTimer(){this._timer.cancel();}
 

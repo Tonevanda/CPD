@@ -20,7 +20,7 @@ import org.json.JSONObject;
  */
 public class Server extends Communication{
 
-    Queue<Player> simplePlayers = new LinkedList<>();
+    List<Player> simplePlayers = new LinkedList<>();
     List<Player> rankedPlayers = new ArrayList<>();
     Map<String, Player> currentAuths = new HashMap<>();
 
@@ -64,6 +64,7 @@ public class Server extends Communication{
     private void handleClient(Socket socket, BufferedReader reader, PrintWriter writer) throws IOException, InterruptedException{
         State state = State.AUTHENTICATION;
         Player player = null;
+        char gamemode = 'N';
 
 
 
@@ -73,18 +74,27 @@ public class Server extends Communication{
                 switch (state) {
                     case AUTHENTICATION -> {
                         player = handleAuthentication(reader, writer);
-                        state = State.MENU;
+                        state = State.valueOf(player.getServerState());
+                        if(state == State.QUEUE){
+                            player.getTimerTask().setMode(1);
+                        }
                     }
                     case MENU -> {
-                        if(handleMenu(socket, reader, writer, player)){
+                        gamemode = handleMenu(reader, writer, player);
+                        if(gamemode == 'q'){
                             state = State.QUIT;
                             this.currentAuths.remove(player.getName());
                         }
-                        else{
+                        else if(gamemode == 'a') {
                             manageSimple();
+                            state = State.QUEUE;
+                            player.getTimerTask().setMode(1);
+                        }
+                        else if(gamemode == 'b'){
                             manageRanked();
                             state = State.QUEUE;
                             player.getTimerTask().setMode(1);
+
                         }
 
                     }
@@ -110,23 +120,47 @@ public class Server extends Communication{
             }
         }catch(SocketException e){
             if(player != null){
+                player.getTimerTask().setDisconnected(true);
                 System.out.println("Client: ".concat(player.getName()).concat(" has disconnected"));
+                player.setServerState(state.toString());
 
-                while(!player.getTimerTask().getTimedOut()){
+                while(player.getTimerTask().getDisconnected()){
                     System.out.print("");
+                    if(player.getTimerTask().getTimedOut()){
+                        System.out.println("Client: ".concat(player.getName()).concat(" has timed out"));
+                        this.locks.getFirst().lock();
+                        this.currentAuths.remove(player.getName());
+                        this.locks.getFirst().unlock();
+                        if(gamemode == 'a'){
+                            this.locks.get(1).lock();
+                            removeFromQueue(player.getName(), this.simplePlayers);
+                            this.locks.get(1).unlock();
+                        }
+                        else if(gamemode == 'b'){
+                            this.locks.get(2).lock();
+                            removeFromQueue(player.getName(), this.rankedPlayers);
+                            this.locks.get(2).unlock();
+                        }
+                        player.closeTimer();
+                        socket.close();
+                        break;
+                    }
                 }
-                System.out.println("Client: ".concat(player.getName()).concat(" has timed out"));
-            }
-        }
-        finally{
-            System.out.println("finished");
-            if(player != null){
-                player.closeTimer();
-                socket.close();
+
             }
         }
 
 
+
+    }
+
+    private void removeFromQueue(String playerName, List<Player> queue){
+        for(int i = 0; i < queue.size(); i++){
+            if(playerName.equals(queue.get(i).getName())){
+                queue.remove(i);
+                break;
+            }
+        }
     }
 
     private Player handleAuthentication(BufferedReader reader, PrintWriter writer) throws IOException {
@@ -142,8 +176,17 @@ public class Server extends Communication{
         }catch(SocketException e){
             throw e;
         }
-        Player player = new Player(name, rank, writer, reader, TIMER_INTERVAL, CONNECTION_CHECK_INTERVAL, CONNECTION_CHECK_TIMEOUT, DISCONNECT_TIMEOUT);
-        currentAuths.put(name, player);
+        Player player;
+        if(this.currentAuths.containsKey(name)) {
+            player = this.currentAuths.get(name);
+            player.setReader(reader);
+            player.setWriter(writer);
+        }
+        else {
+            player = new Player(name, rank, writer, reader, TIMER_INTERVAL, CONNECTION_CHECK_INTERVAL, CONNECTION_CHECK_TIMEOUT, DISCONNECT_TIMEOUT);
+            currentAuths.put(name, player);
+        }
+
         System.out.println("New client connected: " + name);
         System.out.println("User authenticated: " + name + " with rank: " + rank);
 
@@ -151,7 +194,7 @@ public class Server extends Communication{
 
     }
 
-    private boolean handleMenu(Socket socket, BufferedReader reader, PrintWriter writer, Player player) throws IOException{
+    private char handleMenu(BufferedReader reader, PrintWriter writer, Player player) throws IOException{
         // Ask the user which gamemode they want to play
         write(writer, "Which gamemode do you wish to play?");
         write(writer, "A -> Simple   B -> Ranked");
@@ -159,22 +202,20 @@ public class Server extends Communication{
         flush(writer);
         String response;
         try{
-            response = read(reader, writer).getLast();
+            response = read(reader, writer).getLast().toLowerCase();
         }catch(SocketException e){
             throw e;
         }
 
+        char gamemode = response.charAt(0);
         if(player.getRank() >= 0){
             switch (response) {
-                case "A" -> simplePlayers.add(player);
-                case "B" -> rankedPlayers.add(player);
-                case "Q" -> {
-                    return true;
-                }
+                case "a" -> simplePlayers.add(player);
+                case "b" -> rankedPlayers.add(player);
             }
         }
 
-        return false;
+        return gamemode;
 
     }
 
@@ -212,17 +253,23 @@ public class Server extends Communication{
         }
     }
 
-    private synchronized void manageRanked() throws InterruptedException {
+    private List<Player> getGamePlayers(List<Player> queue){
+        List<Player> gamePlayers = new ArrayList<>();
+        for (int i = 0; i < NUM_PLAYERS; i++) {
+            gamePlayers.add(queue.getFirst());
+            queue.removeFirst();
+        }
+
+        return gamePlayers;
+    }
+    private void manageRanked() throws InterruptedException {
         locks.get(2).lock();
         if(this.rankedPlayers.size() >= NUM_PLAYERS) {
             System.out.println("Managing ranked game");
             this.rankedPlayers.sort((p1, p2) -> (p2.getRank() - p1.getRank()));
 
-            List<Player> gamePlayers = new ArrayList<>();
-            for (int i = 0; i < NUM_PLAYERS; i++) {
-                gamePlayers.add(this.rankedPlayers.getFirst());
-                this.rankedPlayers.removeFirst();
-            }
+            List<Player> gamePlayers = getGamePlayers(this.rankedPlayers);
+
 
             locks.get(2).unlock();
             startGame(gamePlayers);
@@ -237,10 +284,8 @@ public class Server extends Communication{
         if(this.simplePlayers.size() >= NUM_PLAYERS) {
             System.out.println("Managing simple game");
             // Get the first NUM_PLAYERS players
-            List<Player> gamePlayers = new ArrayList<>();
-            for (int i = 0; i < NUM_PLAYERS; i++) {
-                gamePlayers.add(this.simplePlayers.poll());
-            }
+            List<Player> gamePlayers = getGamePlayers(this.simplePlayers);
+
 
             locks.get(1).unlock();
             // Start the game
@@ -306,9 +351,12 @@ public class Server extends Communication{
                 if(db.getJSONObject(i).getString("username").equals(name) && db.getJSONObject(i).getString("password").equals(password)){
                     if(currentAuths.containsKey(name)){
                         Player player = currentAuths.get(name);
-                        /*if(!player.getDisconnected()){
+                        if(!player.getTimerTask().getTimedOut() && player.getTimerTask().getDisconnected()){
+                            player.getTimerTask().setMode(0);
+                            write(writer, "Successfully authenticated!", player.getServerState().charAt(0));
+                            flush(writer);
                             return player.getRank();
-                        }*/
+                        }
                         write(writer, "User already authenticated", '1');
                         flush(writer);
                         return -1;

@@ -32,7 +32,7 @@ public class Client extends Communication{
 
     private void startClient(){
 
-        System.out.println("Client started");
+        System.out.println(CLEAR_SCREEN.concat("Client started"));
 
         State state = State.AUTHENTICATION;
 
@@ -56,11 +56,19 @@ public class Client extends Communication{
                         write(writer, credentials.getLast());
                         List<String> response = read(reader, writer);
                         System.out.println(response.getLast());
-                        if(response.getFirst().equals("0")) {
+
+                        if(response.getFirst().equals("0") || response.getFirst().equals("M")) {
                             state = State.MENU;
                             System.out.println(read(reader, writer).getLast());
                             System.out.println(read(reader, writer).getLast());
                             System.out.println(read(reader, writer).getLast());
+                        }
+                        else if(response.getFirst().equals("Q")){
+                            state = State.QUEUE;
+
+                        }
+                        else if(response.getFirst().equals("G")){
+                            state = State.GAME;
                         }
                     }
                     case MENU -> {
@@ -98,7 +106,6 @@ public class Client extends Communication{
                 }
             }
 
-            writer.close();
 
         } catch (UnknownHostException ex) {
             System.out.println("Server not found: " + ex.getMessage());

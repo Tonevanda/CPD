@@ -41,6 +41,7 @@ public abstract class Communication {
         try {
             List<String> res = new ArrayList<>();
             String response = reader.readLine();
+            if(response == null) throw new SocketException();
             if(response.isEmpty()){
                 res.add(Character.toString(NO_ENCODE));
                 res.add("");
@@ -71,7 +72,7 @@ public abstract class Communication {
 
             if (reader.ready() || hasTimedOut) {
                 String response = reader.readLine();
-                System.out.println("Read message: ".concat(response));
+                //System.out.println("Read message: ".concat(response));
                 return true;
             }
             return false;

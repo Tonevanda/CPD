@@ -56,6 +56,8 @@ public class MyTimerTask extends TimerTask {
         this._timedOut = false;
     }
 
+    public void setWriter(PrintWriter writer){this._writer = writer;}
+
     public void setMode(int mode){
         resetTimer();
         if(mode == 0){
@@ -66,6 +68,8 @@ public class MyTimerTask extends TimerTask {
             this._verifyConnection = true;
         }
     }
+
+    public void setDisconnected(boolean isDisconnected){this._isDisconnected = isDisconnected;}
 
 
 
@@ -123,7 +127,7 @@ public class MyTimerTask extends TimerTask {
                 if(!this._isDisconnected && this._verifyConnection &&  !this._timedOut && this._time % this._connectionCheckInterval == 0){
                     this._connectionTime--;
 
-                    System.out.println("SENT VERIFY IF CONNECTION ALIVE MESSAGE");
+                    //System.out.println("SENT VERIFY IF CONNECTION ALIVE MESSAGE");
                     _writer.println("T");
                     _writer.flush();
                 }
