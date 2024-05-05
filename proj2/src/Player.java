@@ -30,15 +30,15 @@ public class Player{
 
     private boolean _inGame = false;
 
-    public Player(String name, int rank, PrintWriter writer, BufferedReader reader, int connectionTimeout, int timerInterval, int connectionCheckInterval){
+    public Player(String name, int rank, PrintWriter writer, BufferedReader reader, int timerInterval, int connectionCheckInterval, int connectionTimeout, int disconnectionTimeout){
         this._name = name;
         this._rank = rank;
         this._writer = writer;
         this._reader = reader;
         this._timer = new Timer();
-        this._timerTask = new MyTimerTask(writer, connectionTimeout, timerInterval, connectionCheckInterval);
+        this._timerTask = new MyTimerTask(writer, connectionCheckInterval, connectionTimeout, disconnectionTimeout);
 
-        this._timerTask.setMode(1);
+        this._timerTask.setMode(0);
 
         _timer.schedule(_timerTask, 0, timerInterval);
 

@@ -31,7 +31,10 @@ public class Server extends Communication{
 
     private final int TIMER_INTERVAL = 1000;
 
-    private final int DISCONNECT_TIMEOUT = 30;
+    private final int DISCONNECT_TIMEOUT = 10;
+
+    private final int CONNECTION_CHECK_TIMEOUT = 10;
+
 
     private final int CONNECTION_CHECK_INTERVAL = 5;
 
@@ -108,14 +111,18 @@ public class Server extends Communication{
         }catch(SocketException e){
             if(player != null){
                 System.out.println("Client: ".concat(player.getName()).concat(" has disconnected"));
+
+                while(!player.getTimerTask().getTimedOut()){
+                    System.out.print("");
+                }
+                System.out.println("Client: ".concat(player.getName()).concat(" has timed out"));
             }
-
-
-
         }
         finally{
+            System.out.println("finished");
             if(player != null){
                 player.closeTimer();
+                socket.close();
             }
         }
 
@@ -135,7 +142,7 @@ public class Server extends Communication{
         }catch(SocketException e){
             throw e;
         }
-        Player player = new Player(name, rank, writer, reader, DISCONNECT_TIMEOUT, TIMER_INTERVAL, CONNECTION_CHECK_INTERVAL);
+        Player player = new Player(name, rank, writer, reader, TIMER_INTERVAL, CONNECTION_CHECK_INTERVAL, CONNECTION_CHECK_TIMEOUT, DISCONNECT_TIMEOUT);
         currentAuths.put(name, player);
         System.out.println("New client connected: " + name);
         System.out.println("User authenticated: " + name + " with rank: " + rank);
@@ -278,7 +285,7 @@ public class Server extends Communication{
                     db.getJSONObject(i).put("rank", newRank);
                     System.out.println(db.getJSONObject(i).getInt("rank") + db.getJSONObject(i).getString("username"));
                     saveJson(db);
-                    return;
+                    break;
                 }
             }
         } finally {

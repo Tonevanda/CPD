@@ -13,6 +13,8 @@ public class MyTimerTask extends TimerTask {
 
     private boolean _verifyConnection = false;
 
+    private boolean _timedOut = false;
+
     private int _connectionCheckInterval;
 
     private int _connectionTimeout;
@@ -34,13 +36,13 @@ public class MyTimerTask extends TimerTask {
 
 
 
-    public MyTimerTask(PrintWriter writer, int connectionTimeout, int disconnectionTimeout, int connectionCheckInterval){
+    public MyTimerTask(PrintWriter writer, int connectionCheckInterval, int connectionTimeout, int disconnectionTimeout){
         this._writer = writer;
+        this._connectionCheckInterval = connectionCheckInterval;
         this._connectionTimeout = connectionTimeout;
         this._connectionTime = connectionTimeout;
         this._disconnectionTimeout = disconnectionTimeout;
         this._disconnectionTime = _disconnectionTimeout;
-        this._connectionCheckInterval = connectionCheckInterval;
 
     }
 
@@ -51,6 +53,7 @@ public class MyTimerTask extends TimerTask {
         this._connectionTime = this._connectionTimeout;
         this._isDisconnected = false;
         this._verifyConnection = false;
+        this._timedOut = false;
     }
 
     public void setMode(int mode){
@@ -64,7 +67,6 @@ public class MyTimerTask extends TimerTask {
         }
     }
 
-    public void setTime(int time){this._time = time;}
 
 
     public void resetConnectionTime(){this._connectionTime = this._connectionTimeout;}
@@ -72,6 +74,8 @@ public class MyTimerTask extends TimerTask {
 
 
     public int getTime(){return this._time;}
+
+    public boolean getTimedOut(){return this._timedOut;}
 
     public boolean getDisconnected(){return this._isDisconnected;}
 
@@ -93,6 +97,18 @@ public class MyTimerTask extends TimerTask {
         this._time++;
         this._timeChanged = true;
 
+        if(this._isDisconnected && !this._timedOut) {
+            this._disconnectionTime--;
+            System.out.println("TIME OUT IS ON: ".concat(Integer.toString(this._disconnectionTime)));
+        }
+        else this._disconnectionTime = this._disconnectionTimeout;
+
+        if(this._disconnectionTime <= 0) {
+            this._timedOut = true;
+        }
+
+
+
 
 
         switch(this._state){
@@ -104,7 +120,7 @@ public class MyTimerTask extends TimerTask {
                 if(this._connectionTime <= 0){
                     this._isDisconnected = true;
                 }
-                if(!this._isDisconnected && this._verifyConnection && this._time % this._connectionCheckInterval == 0){
+                if(!this._isDisconnected && this._verifyConnection &&  !this._timedOut && this._time % this._connectionCheckInterval == 0){
                     this._connectionTime--;
 
                     System.out.println("SENT VERIFY IF CONNECTION ALIVE MESSAGE");
@@ -113,6 +129,7 @@ public class MyTimerTask extends TimerTask {
                 }
             }
         }
+
 
 
     }
