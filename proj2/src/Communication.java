@@ -71,7 +71,7 @@ public abstract class Communication {
         try {
 
             if (reader.ready() || hasTimedOut) {
-                String response = reader.readLine();
+                reader.readLine();
                 //System.out.println("Read message: ".concat(response));
                 return true;
             }

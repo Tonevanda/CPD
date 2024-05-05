@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.*;
 
 public class Game extends Communication{
@@ -10,6 +11,7 @@ public class Game extends Communication{
 
     final private int _cardHeight = 10;
     final private int _cardWidth = 20;
+
 
 
 
@@ -36,6 +38,9 @@ public class Game extends Communication{
         broadcast(CLEAR_SCREEN);
         int currentScore = 0;
         while(true){
+            for(Player player : this.currentPlayers){
+                player.setText("");
+            }
             Player currentPlayer = this.currentPlayers.getFirst();
 
             String text = CLEAR_SCREEN;
@@ -45,13 +50,12 @@ public class Game extends Communication{
 
             drawHands();
 
-            broadcast(text);
 
             for(Player player : this.currentPlayers){
+                player.setText(text.concat("\n").concat(player.getText()));
                 write(player.getWriter(), player.getText());
                 flush(player.getWriter());
 
-                player.setText("");
             }
 
 
@@ -65,8 +69,14 @@ public class Game extends Communication{
             else {
                 write(currentPlayer.getWriter(), "your move.", '0');
                 flush(currentPlayer.getWriter());
-                makeMove(currentPlayer);
-                this.currentPlayers.add(currentPlayer);
+                if(makeMove(currentPlayer)){
+                    this.currentPlayers.add(currentPlayer);
+                }
+                else{
+                    currentPlayer.updateRank(currentScore, false);
+                    currentScore += SCORE_RANGE/(this.players.size()-1);
+                }
+
 
             }
 
@@ -125,12 +135,28 @@ public class Game extends Communication{
         return text;
     }
 
-    public void makeMove(Player currentPlayer) throws IOException {
+    public boolean makeMove(Player currentPlayer) throws IOException {
 
         int cardNumber;
+        String move = "";
 
         while(true) {
-            String move = read(currentPlayer.getReader(), currentPlayer.getWriter()).getLast();
+            try {
+                move = read(currentPlayer.getReader(), currentPlayer.getWriter()).getLast();
+            }catch(SocketException e){
+                currentPlayer.getTimerTask().setDisconnected(true);
+                while(currentPlayer.getTimerTask().getDisconnected()){
+                    System.out.print("");
+                    if(currentPlayer.getTimerTask().getTimedOut()){
+                        return false;
+                    }
+                }
+                write(currentPlayer.getWriter(), currentPlayer.getText());
+                flush(currentPlayer.getWriter());
+                write(currentPlayer.getWriter(), "your move.", '0');
+                flush(currentPlayer.getWriter());
+                continue;
+            }
             try {
                 cardNumber = Integer.parseInt(move);
                 if(isValidMove(currentPlayer, cardNumber-1)){
@@ -147,6 +173,7 @@ public class Game extends Communication{
 
         this.cards.push(currentPlayer.getCard(cardNumber-1));
         currentPlayer.discardCard(cardNumber-1);
+        return true;
     }
 
     public boolean isValidMove(Player currentPlayer, int cardNumber){

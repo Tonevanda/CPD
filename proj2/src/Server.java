@@ -64,7 +64,7 @@ public class Server extends Communication{
     private void handleClient(Socket socket, BufferedReader reader, PrintWriter writer) throws IOException, InterruptedException{
         State state = State.AUTHENTICATION;
         Player player = null;
-        char gamemode = 'N';
+        char gamemode = 'n';
 
 
 
@@ -76,7 +76,11 @@ public class Server extends Communication{
                         player = handleAuthentication(reader, writer);
                         state = State.valueOf(player.getServerState());
                         if(state == State.QUEUE){
+                            gamemode = 'i';
                             player.getTimerTask().setMode(1);
+                        }
+                        else if(state == State.GAME) {
+                            player.setServerState("GAME");
                         }
                     }
                     case MENU -> {
@@ -104,6 +108,7 @@ public class Server extends Communication{
                         }
                         if (this.currentAuths.get(player.getName()).getInGame()) {
                             state = State.GAME;
+                            player.setServerState("GAME");
                             player.getTimerTask().setMode(0);
                         } else if (player.getTimerTask().timeChanged()){
                             write(player.getWriter(), CLEAR_SCREEN.concat("Waiting for game to start. ").concat(Integer.toString(player.getTimerTask().getTime()).concat(" seconds have passed")), '1');
@@ -111,9 +116,19 @@ public class Server extends Communication{
                         }
                     }
                     case GAME -> {
-                        if (!this.currentAuths.get(player.getName()).getInGame()){
+                        if(player.getTimerTask().getTimedOut()){
+                            updateRank(player.getName(), player.getRank());
+                            this.locks.getFirst().lock();
+                            this.currentAuths.remove(player.getName());
+                            this.locks.getFirst().unlock();
+                            player.closeTimer();
+                            socket.close();
+                            state = State.QUIT;
+                        }
+                        else if (!this.currentAuths.get(player.getName()).getInGame()){
                             state = State.MENU;
                         }
+
                     }
 
                 }
@@ -131,16 +146,17 @@ public class Server extends Communication{
                         this.locks.getFirst().lock();
                         this.currentAuths.remove(player.getName());
                         this.locks.getFirst().unlock();
-                        if(gamemode == 'a'){
+                        if(gamemode == 'a' || gamemode == 'i'){
                             this.locks.get(1).lock();
                             removeFromQueue(player.getName(), this.simplePlayers);
                             this.locks.get(1).unlock();
                         }
-                        else if(gamemode == 'b'){
+                        if(gamemode == 'b' || gamemode == 'i'){
                             this.locks.get(2).lock();
                             removeFromQueue(player.getName(), this.rankedPlayers);
                             this.locks.get(2).unlock();
                         }
+
                         player.closeTimer();
                         socket.close();
                         break;
@@ -181,6 +197,7 @@ public class Server extends Communication{
             player = this.currentAuths.get(name);
             player.setReader(reader);
             player.setWriter(writer);
+            player.getTimerTask().setMode(0);
         }
         else {
             player = new Player(name, rank, writer, reader, TIMER_INTERVAL, CONNECTION_CHECK_INTERVAL, CONNECTION_CHECK_TIMEOUT, DISCONNECT_TIMEOUT);
@@ -262,7 +279,7 @@ public class Server extends Communication{
 
         return gamePlayers;
     }
-    private void manageRanked() throws InterruptedException {
+    private void manageRanked(){
         locks.get(2).lock();
         if(this.rankedPlayers.size() >= NUM_PLAYERS) {
             System.out.println("Managing ranked game");
@@ -296,7 +313,7 @@ public class Server extends Communication{
         }
     }
 
-    private void startGame(List<Player> players) throws InterruptedException {
+    private void startGame(List<Player> players){
 
         Thread.startVirtualThread(()->{
 
@@ -308,8 +325,10 @@ public class Server extends Communication{
             try {
                 game.run();
                 for(Player player : game.get_players()){
-                    this.currentAuths.get(player.getName()).setInGame(false);
-                    updateRank(player.getName(), player.getRank());
+                    if(!player.getTimerTask().getTimedOut()) {
+                        updateRank(player.getName(), player.getRank());
+                        this.currentAuths.get(player.getName()).setInGame(false);
+                    }
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -320,17 +339,18 @@ public class Server extends Communication{
 
 
     private void updateRank(String name, int newRank){
-        JSONArray db = loadJson();
+
 
         locks.getFirst().lock();
+        JSONArray db = loadJson();
         try {
             for(int i = 0; i < db.length(); i++){
                 if(db.getJSONObject(i).getString("username").equals(name)){
-    
+
                     db.getJSONObject(i).put("rank", newRank);
                     System.out.println(db.getJSONObject(i).getInt("rank") + db.getJSONObject(i).getString("username"));
                     saveJson(db);
-                    break;
+                    return;
                 }
             }
         } finally {
@@ -352,7 +372,6 @@ public class Server extends Communication{
                     if(currentAuths.containsKey(name)){
                         Player player = currentAuths.get(name);
                         if(!player.getTimerTask().getTimedOut() && player.getTimerTask().getDisconnected()){
-                            player.getTimerTask().setMode(0);
                             write(writer, "Successfully authenticated!", player.getServerState().charAt(0));
                             flush(writer);
                             return player.getRank();
@@ -375,7 +394,7 @@ public class Server extends Communication{
             db.put(user);
             write(writer, "New account has been created!", '0');
             flush(writer);
-        
+
             // Save the new user account to the database
             saveJson(db);
             System.out.println("Saved new user account to database");
