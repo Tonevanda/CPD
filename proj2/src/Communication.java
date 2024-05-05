@@ -66,13 +66,15 @@ public abstract class Communication {
         }
     }
 
-    public void isConnectionAlive(BufferedReader reader) throws IOException {
+    public boolean isConnectionAlive(BufferedReader reader, boolean hasTimedOut) throws IOException {
         try {
 
-            if (reader.ready()) {
+            if (reader.ready() || hasTimedOut) {
                 String response = reader.readLine();
                 System.out.println("Read message: ".concat(response));
+                return true;
             }
+            return false;
         }catch(SocketException e){
             throw e;
         }

@@ -3,6 +3,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Timer;
 
 public class Player{
     private final String _name;
@@ -11,6 +12,10 @@ public class Player{
     final private PrintWriter _writer;
 
     final private BufferedReader _reader;
+
+    private Timer _timer;
+
+    private MyTimerTask _timerTask;
 
     private List<Card> deck;
 
@@ -21,15 +26,22 @@ public class Player{
     private final int _maxHandSize = 5;
 
     private String _text = "";
-    private boolean _timedOut = false;
+    private boolean _disconnected = false;
 
     private boolean _inGame = false;
 
-    public Player(String name, int rank, PrintWriter writer, BufferedReader reader){
+    public Player(String name, int rank, PrintWriter writer, BufferedReader reader, int connectionTimeout, int timerInterval, int connectionCheckInterval){
         this._name = name;
         this._rank = rank;
         this._writer = writer;
         this._reader = reader;
+        this._timer = new Timer();
+        this._timerTask = new MyTimerTask(writer, connectionTimeout, timerInterval, connectionCheckInterval);
+
+        this._timerTask.setMode(1);
+
+        _timer.schedule(_timerTask, 0, timerInterval);
+
         this.deck = new ArrayList<>();
 
         for(int i = 0; i < 10; i++){
@@ -40,7 +52,7 @@ public class Player{
         drawCardsAction(_maxHandSize);
     }
 
-    public boolean getTimedOut() { return this._timedOut; }
+    public boolean getDisconnected() { return this._disconnected; }
 
     public boolean getInGame() { return this._inGame; }
 
@@ -58,6 +70,8 @@ public class Player{
 
     public BufferedReader getReader() { return this._reader; }
 
+    public MyTimerTask getTimerTask(){return this._timerTask;}
+
     public String getText(){ return this._text; }
 
     public Card getCard(int cardNumber) { return this.hand.get(cardNumber); }
@@ -74,7 +88,7 @@ public class Player{
         if(this._rank < 0) this._rank = 0;
     }
 
-    public void setTimedOut(boolean timedOut) { this._timedOut = timedOut; }
+    public void setDisconnected(boolean disconnected) { this._disconnected = disconnected; }
 
     public void setInGame(boolean inGame) { this._inGame = inGame; }
 
@@ -82,6 +96,7 @@ public class Player{
 
     public void setText(String text){ this._text = text; }
 
+    public void closeTimer(){this._timer.cancel();}
 
 
     public void drawCardsAction(int quantity){
