@@ -31,12 +31,14 @@ public class Server extends Communication{
 
     private final int TIMER_INTERVAL = 1000;
 
-    private final int DISCONNECT_TIMEOUT = 10;
+    private final int RANK_QUEUE_TIMER_INTERVAL = 5000;
 
-    private final int CONNECTION_CHECK_TIMEOUT = 10;
+    private final int DISCONNECT_TIMEOUT = 30;
+
+    private final int CONNECTION_CHECK_TIMEOUT = 5;
 
 
-    private final int CONNECTION_CHECK_INTERVAL = 5;
+    private final int CONNECTION_CHECK_INTERVAL = 1;
 
 
     private final List<ReentrantLock> locks = new ArrayList<>();
@@ -94,11 +96,12 @@ public class Server extends Communication{
                             manageSimple();
                             state = State.QUEUE;
                             player.getTimerTask().setMode(1);
+                            player.getTimerTask().setTimer(0);
                         }
                         else if(gamemode == 'b'){
-                            manageRanked();
                             state = State.QUEUE;
                             player.getTimerTask().setMode(1);
+                            player.getTimerTask().setTimer(0);
 
                         }
 
@@ -201,6 +204,7 @@ public class Server extends Communication{
             player.setReader(reader);
             player.setWriter(writer);
             player.getTimerTask().setMode(0);
+            manageSimple();
         }
         else {
             player = new Player(name, rank, writer, reader, TIMER_INTERVAL, CONNECTION_CHECK_INTERVAL, CONNECTION_CHECK_TIMEOUT, DISCONNECT_TIMEOUT);
@@ -244,6 +248,21 @@ public class Server extends Communication{
 
             System.out.println("Server is listening on port " + port);
 
+            Thread.startVirtualThread(()->{
+                Timer timer = new Timer();
+                MyTimerTask timerTask = new MyTimerTask(CONNECTION_CHECK_INTERVAL, CONNECTION_CHECK_TIMEOUT, DISCONNECT_TIMEOUT);
+                timerTask.setMode(0);
+                timer.schedule(timerTask, 0, RANK_QUEUE_TIMER_INTERVAL);
+                while(true){
+                    System.out.print("");
+                    if(timerTask.timeChanged() && this.rankedPlayers.size() >= NUM_PLAYERS){
+                        System.out.println("CHECK RANKED");
+                        manageRanked();
+                    }
+                }
+
+            });
+
             while (true) {
                 Socket socket = serverSocket.accept();
 
@@ -273,26 +292,75 @@ public class Server extends Communication{
         }
     }
 
-    private List<Player> getGamePlayers(List<Player> queue){
-        List<Player> gamePlayers = new ArrayList<>();
-        for (int i = 0; i < NUM_PLAYERS; i++) {
-            gamePlayers.add(queue.getFirst());
-            queue.removeFirst();
+    private List<List<Player>> getRankedPlayers(){
+        List<List<Player>> games = new ArrayList<>();
+
+
+
+
+        for(int j = 0; j < this.rankedPlayers.size(); j++) {
+            this.rankedPlayers.sort((p1, p2) -> (p2.getTimerTask().getTime() - p1.getTimerTask().getTime()));
+            System.out.println("THE CURRENT RANKED PLAYERS LIST IS:");
+            for(Player player : this.rankedPlayers){
+                System.out.println(player.getName().concat(": ").concat(Integer.toString(player.getRank())));
+            }
+            Player player = this.rankedPlayers.get(j);
+            List<Player> gamePlayers = new ArrayList<>();
+            gamePlayers.add(player);
+            this.rankedPlayers.remove(j);
+
+            if (!player.getTimerTask().getDisconnected()){
+                this.rankedPlayers.sort(Comparator.comparingInt(p ->
+                        Math.max(
+                                Math.abs(player.getRank() - p.getRank())
+                                , 0)
+                ));
+                for (int i = 0; i < NUM_PLAYERS-1; i++) {
+                    Player p = this.rankedPlayers.getFirst();
+                    int rankDistance = Math.abs(player.getRank() - p.getRank());
+                    if (p.getTimerTask().getDisconnected() ||
+                            rankDistance - player.getTimerTask().getTime() > 0 ||
+                            rankDistance - p.getTimerTask().getTime() > 0) {
+                        break;
+                    }
+                    gamePlayers.add(p);
+                    this.rankedPlayers.removeFirst();
+                }
+            }
+
+            if(gamePlayers.size() == NUM_PLAYERS) {
+                j += NUM_PLAYERS-1;
+                games.add(gamePlayers);
+            }
+            else this.rankedPlayers.addAll(gamePlayers);
+
         }
 
-        return gamePlayers;
+
+
+        return games;
     }
+
     private void manageRanked(){
         locks.get(2).lock();
         if(this.rankedPlayers.size() >= NUM_PLAYERS) {
             System.out.println("Managing ranked game");
-            this.rankedPlayers.sort((p1, p2) -> (p2.getRank() - p1.getRank()));
 
-            List<Player> gamePlayers = getGamePlayers(this.rankedPlayers);
+
+
+            List<List<Player>> games = getRankedPlayers();
+
+
 
 
             locks.get(2).unlock();
-            startGame(gamePlayers, 'b');
+            if(!games.isEmpty()){
+                for(List<Player> gamePlayers : games){
+                    startGame(gamePlayers, 'b');
+                }
+
+            }
+
         }
         else{
             locks.get(2).unlock();
@@ -304,7 +372,11 @@ public class Server extends Communication{
         if(this.simplePlayers.size() >= NUM_PLAYERS) {
             System.out.println("Managing simple game");
             // Get the first NUM_PLAYERS players
-            List<Player> gamePlayers = getGamePlayers(this.simplePlayers);
+            List<Player> gamePlayers = new ArrayList<>();
+            for (int i = 0; i < NUM_PLAYERS; i++) {
+                gamePlayers.add(this.simplePlayers.getFirst());
+                this.simplePlayers.removeFirst();
+            }
 
 
             locks.get(1).unlock();

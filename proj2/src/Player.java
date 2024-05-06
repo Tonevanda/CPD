@@ -21,9 +21,9 @@ public class Player{
 
     private List<Card> deck;
 
-    private final List<Card> hand = new ArrayList<>();
+    private List<Card> hand;
 
-    private List<Card> _discardPile = new ArrayList<>();
+    private List<Card> _discardPile;
 
     private final int _maxHandSize = 5;
 
@@ -43,12 +43,22 @@ public class Player{
 
         _timer.schedule(_timerTask, 0, timerInterval);
 
-        this.deck = new ArrayList<>();
+        resetPlayerGameInfo();
 
+
+
+
+
+    }
+
+    public void resetPlayerGameInfo(){
+        this.deck = new ArrayList<>();
+        this._discardPile = new ArrayList<>();
+        this.hand = new ArrayList<>();
+        this._text = "";
         for(int i = 0; i < 10; i++){
             this.deck.add(new Card(i));
         }
-
         Collections.shuffle(this.deck);
         drawCardsAction(_maxHandSize);
     }

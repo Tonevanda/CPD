@@ -70,6 +70,7 @@ public class Game extends Communication{
                     currentPlayer.updateRank(currentScore, false);
                     currentScore += SCORE_RANGE/(this.players.size()-1);
                 }
+                currentPlayer.resetPlayerGameInfo();
 
             }
             else {
@@ -81,6 +82,10 @@ public class Game extends Communication{
                 else if(_gamemode == 'b'){
                     currentPlayer.updateRank(currentScore, false);
                     currentScore += SCORE_RANGE/(this.players.size()-1);
+                    currentPlayer.resetPlayerGameInfo();
+                }
+                else{
+                    currentPlayer.resetPlayerGameInfo();
                 }
 
 
@@ -96,7 +101,7 @@ public class Game extends Communication{
         write(winner.getWriter(), "Congratulations, you won!", '1');
         flush(winner.getWriter());
         if(_gamemode == 'b')winner.updateRank(currentScore, true);
-        //giveScore(winner.getName(), currentScore, true);
+        winner.resetPlayerGameInfo();
 
         System.out.println("Game ended");
     }

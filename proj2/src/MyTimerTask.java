@@ -34,7 +34,13 @@ public class MyTimerTask extends TimerTask {
 
 
 
-
+    public MyTimerTask(int connectionCheckInterval, int connectionTimeout, int disconnectionTimeout){
+        this._connectionCheckInterval = connectionCheckInterval;
+        this._connectionTimeout = connectionTimeout;
+        this._connectionTime = connectionTimeout;
+        this._disconnectionTimeout = disconnectionTimeout;
+        this._disconnectionTime = _disconnectionTimeout;
+    }
 
     public MyTimerTask(PrintWriter writer, int connectionCheckInterval, int connectionTimeout, int disconnectionTimeout){
         this._writer = writer;
@@ -46,8 +52,9 @@ public class MyTimerTask extends TimerTask {
 
     }
 
+    public void setTimer(int time){this._time = time;}
+
     public void resetTimer(){
-        this._time = 0;
         this._timeChanged = false;
         this._disconnectionTime = this._disconnectionTimeout;
         this._connectionTime = this._connectionTimeout;
@@ -100,6 +107,7 @@ public class MyTimerTask extends TimerTask {
     public void run() {
         this._time++;
         this._timeChanged = true;
+        if(this._time > 1000000000) this._time = 0;
 
         if(this._isDisconnected && !this._timedOut) {
             this._disconnectionTime--;
