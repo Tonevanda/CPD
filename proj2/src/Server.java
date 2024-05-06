@@ -88,6 +88,7 @@ public class Server extends Communication{
                         if(gamemode == 'q'){
                             state = State.QUIT;
                             this.currentAuths.remove(player.getName());
+                            updateRank(player.getName(), player.getRank());
                         }
                         else if(gamemode == 'a') {
                             manageSimple();
@@ -117,13 +118,14 @@ public class Server extends Communication{
                     }
                     case GAME -> {
                         if(player.getTimerTask().getTimedOut()){
-                            updateRank(player.getName(), player.getRank());
                             this.locks.getFirst().lock();
                             this.currentAuths.remove(player.getName());
                             this.locks.getFirst().unlock();
                             player.closeTimer();
                             socket.close();
                             state = State.QUIT;
+                            updateRank(player.getName(), player.getRank());
+
                         }
                         else if (!this.currentAuths.get(player.getName()).getInGame()){
                             state = State.MENU;
@@ -159,6 +161,7 @@ public class Server extends Communication{
 
                         player.closeTimer();
                         socket.close();
+                        updateRank(player.getName(), player.getRank());
                         break;
                     }
                 }
@@ -289,14 +292,14 @@ public class Server extends Communication{
 
 
             locks.get(2).unlock();
-            startGame(gamePlayers);
+            startGame(gamePlayers, 'b');
         }
         else{
             locks.get(2).unlock();
         }
     }
 
-    private void manageSimple() throws InterruptedException {
+    private void manageSimple(){
         locks.get(1).lock();
         if(this.simplePlayers.size() >= NUM_PLAYERS) {
             System.out.println("Managing simple game");
@@ -306,14 +309,14 @@ public class Server extends Communication{
 
             locks.get(1).unlock();
             // Start the game
-            startGame(gamePlayers);
+            startGame(gamePlayers, 'a');
         }
         else{
             locks.get(1).unlock();
         }
     }
 
-    private void startGame(List<Player> players){
+    private void startGame(List<Player> players, char gamemode){
 
         Thread.startVirtualThread(()->{
 
@@ -321,12 +324,11 @@ public class Server extends Communication{
                 this.currentAuths.get(player.getName()).setInGame(true);
             }
             Collections.shuffle(players);
-            Game game = new Game(players);
+            Game game = new Game(players, gamemode);
             try {
                 game.run();
                 for(Player player : game.get_players()){
                     if(!player.getTimerTask().getTimedOut()) {
-                        updateRank(player.getName(), player.getRank());
                         this.currentAuths.get(player.getName()).setInGame(false);
                     }
                 }

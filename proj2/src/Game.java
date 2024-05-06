@@ -17,7 +17,9 @@ public class Game extends Communication{
 
     final private int SCORE_RANGE = 20;
 
-    public Game(List<Player> players){
+    private char _gamemode;
+
+    public Game(List<Player> players, char gamemode){
 
         for(Player player : players){
             writers.add(player.getWriter());
@@ -27,6 +29,7 @@ public class Game extends Communication{
         broadcast("Game started!", '0');
 
         this.players = players;
+        this._gamemode = gamemode;
     }
 
     public List<Player> get_players(){
@@ -63,8 +66,11 @@ public class Game extends Communication{
             if(!this.cards.isEmpty() && currentPlayer.hasLost(this.cards.peek())){
                 write(currentPlayer.getWriter(), "you lost!", '1');
                 flush(currentPlayer.getWriter());
-                currentPlayer.updateRank(currentScore, false);
-                currentScore += SCORE_RANGE/(this.players.size()-1);
+                if(_gamemode == 'b'){
+                    currentPlayer.updateRank(currentScore, false);
+                    currentScore += SCORE_RANGE/(this.players.size()-1);
+                }
+
             }
             else {
                 write(currentPlayer.getWriter(), "your move.", '0');
@@ -72,7 +78,7 @@ public class Game extends Communication{
                 if(makeMove(currentPlayer)){
                     this.currentPlayers.add(currentPlayer);
                 }
-                else{
+                else if(_gamemode == 'b'){
                     currentPlayer.updateRank(currentScore, false);
                     currentScore += SCORE_RANGE/(this.players.size()-1);
                 }
@@ -89,7 +95,7 @@ public class Game extends Communication{
         Player winner = this.currentPlayers.getFirst();
         write(winner.getWriter(), "Congratulations, you won!", '1');
         flush(winner.getWriter());
-        winner.updateRank(currentScore, true);
+        if(_gamemode == 'b')winner.updateRank(currentScore, true);
         //giveScore(winner.getName(), currentScore, true);
 
         System.out.println("Game ended");
