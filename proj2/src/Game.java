@@ -9,8 +9,8 @@ public class Game extends Communication{
 
     private final Stack<Card> cards = new Stack<>();
 
-    final private int _cardHeight = 10;
-    final private int _cardWidth = 20;
+    final private int _cardHeight = 15;
+    final private int _cardWidth = 35;
 
 
 
@@ -18,6 +18,8 @@ public class Game extends Communication{
     final private int SCORE_RANGE = 20;
 
     private char _gamemode;
+
+    private int currentScore = 0;
 
     public Game(List<Player> players, char gamemode){
 
@@ -39,7 +41,7 @@ public class Game extends Communication{
     public void run() throws IOException {
         System.out.println("Game started");
         broadcast(CLEAR_SCREEN);
-        int currentScore = 0;
+
         while(true){
             for(Player player : this.currentPlayers){
                 player.setText("");
@@ -61,35 +63,10 @@ public class Game extends Communication{
 
             }
 
+            gameLogic(currentPlayer);
 
 
-            if(!this.cards.isEmpty() && currentPlayer.hasLost(this.cards.peek())){
-                write(currentPlayer.getWriter(), "you lost!", '1');
-                flush(currentPlayer.getWriter());
-                if(_gamemode == 'b'){
-                    currentPlayer.updateRank(currentScore, false);
-                    currentScore += SCORE_RANGE/(this.players.size()-1);
-                }
-                currentPlayer.resetPlayerGameInfo();
 
-            }
-            else {
-                write(currentPlayer.getWriter(), "your move.", '0');
-                flush(currentPlayer.getWriter());
-                if(makeMove(currentPlayer)){
-                    this.currentPlayers.add(currentPlayer);
-                }
-                else if(_gamemode == 'b'){
-                    currentPlayer.updateRank(currentScore, false);
-                    currentScore += SCORE_RANGE/(this.players.size()-1);
-                    currentPlayer.resetPlayerGameInfo();
-                }
-                else{
-                    currentPlayer.resetPlayerGameInfo();
-                }
-
-
-            }
 
             this.currentPlayers.removeFirst();
             if(this.currentPlayers.size() == 1){
@@ -109,10 +86,11 @@ public class Game extends Communication{
     private String drawPlayers(){
         String text = "";
 
-        text = text.concat("       ");
+        text = text.concat("    ");
         for(Player player : this.players){
 
             text = text.concat("|").concat(player.getName());
+            text = text.concat(" ").concat(Integer.toString(player.getLives())).concat("<3");
             text = text.concat(" #").concat(Integer.toString(player.getRank())).concat("|");
             text = text.concat("                                      ");
 
@@ -144,6 +122,48 @@ public class Game extends Communication{
         }
 
         return text;
+    }
+
+
+    private void gameLogic(Player currentPlayer) throws IOException {
+        if (!this.cards.isEmpty() && currentPlayer.hasLost(this.cards.peek())) {
+            if(currentPlayer.getLives() <= 0) {
+                write(currentPlayer.getWriter(), "you lost!", '1');
+                flush(currentPlayer.getWriter());
+                if (_gamemode == 'b') {
+                    currentPlayer.updateRank(currentScore, false);
+                    currentScore += SCORE_RANGE / (this.players.size() - 1);
+                }
+                currentPlayer.resetPlayerGameInfo();
+            }
+            else{
+                this.currentPlayers.add(currentPlayer);
+                while(!this.cards.isEmpty()){
+                    Card card = this.cards.pop();
+                    for(Player player : this.currentPlayers){
+                        if(player.getName().equals(card.getOwner())){
+                            player.discardCard(card);
+                            break;
+                        }
+                    }
+                }
+            }
+
+        } else {
+            write(currentPlayer.getWriter(), "your move.", '0');
+            flush(currentPlayer.getWriter());
+            if (makeMove(currentPlayer)) {
+                this.currentPlayers.add(currentPlayer);
+            } else if (_gamemode == 'b') {
+                currentPlayer.updateRank(currentScore, false);
+                currentScore += SCORE_RANGE / (this.players.size() - 1);
+                currentPlayer.resetPlayerGameInfo();
+            } else {
+                currentPlayer.resetPlayerGameInfo();
+            }
+
+
+        }
     }
 
     public boolean makeMove(Player currentPlayer) throws IOException {
@@ -183,7 +203,7 @@ public class Game extends Communication{
         }
 
         this.cards.push(currentPlayer.getCard(cardNumber-1));
-        currentPlayer.discardCard(cardNumber-1);
+        currentPlayer.playCard(cardNumber-1);
         return true;
     }
 
@@ -191,9 +211,11 @@ public class Game extends Communication{
 
         if(cardNumber < currentPlayer.getHandCardsCount() && cardNumber >= 0){
             Card card = currentPlayer.getCard(cardNumber);
-            if(this.cards.isEmpty()) return true;
-            Card boardCard = this.cards.peek();
-            return card.getValue() >= boardCard.getValue();
+            if(!this.cards.isEmpty() && card.isCreature()) {
+                Card boardCard = this.cards.peek();
+                return card.getValue() >= boardCard.getValue();
+            }
+            return true;
         }
 
         return false;

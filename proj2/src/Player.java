@@ -9,6 +9,8 @@ public class Player{
     private final String _name;
     private int _rank;
 
+    private int _previousRank;
+
     private PrintWriter _writer;
 
     private BufferedReader _reader;
@@ -25,15 +27,18 @@ public class Player{
 
     private List<Card> _discardPile;
 
-    private final int _maxHandSize = 5;
+    private final int _maxHandSize = 4;
 
     private String _text = "";
+
+    private int _lives = 3;
 
     private boolean _inGame = false;
 
     public Player(String name, int rank, PrintWriter writer, BufferedReader reader, int timerInterval, int connectionCheckInterval, int connectionTimeout, int disconnectionTimeout){
         this._name = name;
         this._rank = rank;
+        this._previousRank = rank;
         this._writer = writer;
         this._reader = reader;
         this._timer = new Timer();
@@ -52,12 +57,13 @@ public class Player{
     }
 
     public void resetPlayerGameInfo(){
+        this._lives = 3;
         this.deck = new ArrayList<>();
         this._discardPile = new ArrayList<>();
         this.hand = new ArrayList<>();
         this._text = "";
         for(int i = 0; i < 10; i++){
-            this.deck.add(new Card(i));
+            this.deck.add(new Card(i, _name));
         }
         Collections.shuffle(this.deck);
         drawCardsAction(_maxHandSize);
@@ -67,6 +73,8 @@ public class Player{
 
 
     public boolean getInGame() { return this._inGame; }
+
+    public boolean hasPlayerDBInfoChanged(){return this._rank != this._previousRank;}
 
 
 
@@ -85,6 +93,8 @@ public class Player{
     public MyTimerTask getTimerTask(){return this._timerTask;}
 
     public String getText(){ return this._text; }
+
+    public int getLives(){return this._lives;}
 
     public Card getCard(int cardNumber) { return this.hand.get(cardNumber); }
 
@@ -144,20 +154,23 @@ public class Player{
         }
     }
 
-    public void discardCard(int cardNumber){
-        Card card = this.hand.get(cardNumber);
+    public void discardCard(Card card){
+        this._discardPile.add(card);
+    }
+
+    public void playCard(int cardNumber){
 
         this.hand.remove(cardNumber);
 
         if(this.hand.isEmpty()) drawCardsAction(this._maxHandSize);
 
-        this._discardPile.add(card);
     }
 
     public boolean hasLost(Card boardCard){
         for(Card card : this.hand){
             if(card.getValue() >= boardCard.getValue()) return false;
         }
+        this._lives--;
         return true;
     }
 }

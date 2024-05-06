@@ -90,7 +90,7 @@ public class Server extends Communication{
                         if(gamemode == 'q'){
                             state = State.QUIT;
                             this.currentAuths.remove(player.getName());
-                            updateRank(player.getName(), player.getRank());
+                            updateRank(player);
                         }
                         else if(gamemode == 'a') {
                             manageSimple();
@@ -127,7 +127,7 @@ public class Server extends Communication{
                             player.closeTimer();
                             socket.close();
                             state = State.QUIT;
-                            updateRank(player.getName(), player.getRank());
+                            updateRank(player);
 
                         }
                         else if (!this.currentAuths.get(player.getName()).getInGame()){
@@ -164,7 +164,7 @@ public class Server extends Communication{
 
                         player.closeTimer();
                         socket.close();
-                        updateRank(player.getName(), player.getRank());
+                        updateRank(player);
                         break;
                     }
                 }
@@ -412,26 +412,30 @@ public class Server extends Communication{
     }
 
 
-    private void updateRank(String name, int newRank){
+    private void updateRank(Player player){
 
+        if(player.hasPlayerDBInfoChanged()) {
 
-        locks.getFirst().lock();
-        JSONArray db = loadJson();
-        try {
-            for(int i = 0; i < db.length(); i++){
-                if(db.getJSONObject(i).getString("username").equals(name)){
+            locks.getFirst().lock();
+            String name = player.getName();
+            int newRank = player.getRank();
+            JSONArray db = loadJson();
+            try {
+                for (int i = 0; i < db.length(); i++) {
+                    if (db.getJSONObject(i).getString("username").equals(name)) {
 
-                    db.getJSONObject(i).put("rank", newRank);
-                    System.out.println(db.getJSONObject(i).getInt("rank") + db.getJSONObject(i).getString("username"));
-                    saveJson(db);
-                    return;
+                        db.getJSONObject(i).put("rank", newRank);
+                        System.out.println(db.getJSONObject(i).getInt("rank") + db.getJSONObject(i).getString("username"));
+                        saveJson(db);
+                        return;
+                    }
                 }
+            } finally {
+                locks.getFirst().unlock();
             }
-        } finally {
-            locks.getFirst().unlock();
-        }
 
-        System.out.println("Can't update rank, because user does not exist");
+            System.out.println("Can't update rank, because user does not exist");
+        }
     }
 
     private int authenticateClient(String name, String password, PrintWriter writer){
