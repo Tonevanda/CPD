@@ -94,6 +94,7 @@ public class Player{
 
     public String getText(){ return this._text; }
 
+
     public int getLives(){return this._lives;}
 
     public Card getCard(int cardNumber) { return this.hand.get(cardNumber); }

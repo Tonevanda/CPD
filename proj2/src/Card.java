@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class Card {
@@ -79,9 +80,30 @@ public class Card {
             case ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE ->{
                 return this._type.ordinal();
             }
-            case ANTEATER -> {return 8;}
+            case ANTEATER -> {return 3;}
         }
         return 0;
+    }
+
+
+    public void triggerOnPlayEffects(Player currentPlayer){
+        switch(this._type){
+            case ANTEATER -> {
+                List<Integer> cardIndices = new ArrayList<>();
+                for(int i = 0; i < currentPlayer.getHandCardsCount(); i++){
+                    Card card = currentPlayer.getCard(i);
+                    if(card.isCreature() && card.getValue() < getValue()){
+                        cardIndices.add(i);
+                    }
+                }
+                if(!cardIndices.isEmpty()){
+                    Collections.shuffle(cardIndices);
+                    currentPlayer.discardCard(currentPlayer.getCard(cardIndices.getFirst()));
+                    currentPlayer.playCard(cardIndices.getFirst());
+
+                }
+            }
+        }
     }
 
 

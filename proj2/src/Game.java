@@ -17,7 +17,7 @@ public class Game extends Communication{
 
     final private int SCORE_RANGE = 20;
 
-    private char _gamemode;
+    private final char _gamemode;
 
     private int currentScore = 0;
 
@@ -205,6 +205,7 @@ public class Game extends Communication{
 
         this.cards.push(currentPlayer.getCard(cardNumber-1));
         currentPlayer.playCard(cardNumber-1);
+        this.cards.peek().triggerOnPlayEffects(currentPlayer);
         return true;
     }
 
