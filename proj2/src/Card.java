@@ -84,6 +84,8 @@ public class Card {
         return 0;
     }
 
+
+
     public String draw(int row, int width, int height){
         String value;
         if(isCreature()){

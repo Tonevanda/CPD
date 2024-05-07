@@ -49,15 +49,13 @@ public class Game extends Communication{
             Player currentPlayer = this.currentPlayers.getFirst();
 
             String text = CLEAR_SCREEN;
-            text = text.concat(drawPlayers()).concat("\n");
-
-            text = text.concat(drawPlayingCards()).concat("\n");
+            text = text.concat(drawGameState());
 
             drawHands();
 
 
             for(Player player : this.currentPlayers){
-                player.setText(text.concat("\n").concat(player.getText()));
+                player.setText(text.concat(player.getText()));
                 write(player.getWriter(), player.getText());
                 flush(player.getWriter());
 
@@ -83,19 +81,38 @@ public class Game extends Communication{
         System.out.println("Game ended");
     }
 
-    private String drawPlayers(){
+
+    private String drawGameState(){
         String text = "";
 
-        text = text.concat("    ");
-        for(Player player : this.players){
-
-            text = text.concat("|").concat(player.getName());
-            text = text.concat(" ").concat(Integer.toString(player.getLives())).concat("<3");
-            text = text.concat(" #").concat(Integer.toString(player.getRank())).concat("|");
-            text = text.concat("                                      ");
-
-        }
         text = text.concat("\n");
+
+        int boardCardDistance= 70;
+
+        Card topCard;
+        if(this.cards.isEmpty()) topCard = null;
+        else topCard = this.cards.peek();
+
+        for(int j = 0; j < this._cardHeight; j++){
+            String currentText = "";
+            currentText = currentText.concat("    ");
+            int startingIndex = 0;
+            if(j < this.players.size()){
+                Player player = this.players.get(j);
+                currentText = currentText.concat("|").concat(player.getName());
+                currentText = currentText.concat(" ").concat(Integer.toString(player.getLives())).concat("<3");
+                currentText = currentText.concat(" #").concat(Integer.toString(player.getRank())).concat("|");
+                startingIndex = 7+player.getName().length()+Integer.toString(player.getLives()).length()+Integer.toString(player.getRank()).length();
+            }
+            if(topCard != null){
+                for(int i = startingIndex; i < boardCardDistance; i++){
+                    currentText = currentText.concat(" ");
+                }
+                currentText = currentText.concat(topCard.draw(j, this._cardWidth, this._cardHeight));
+            }
+            currentText = currentText.concat("\n");
+            text = text.concat(currentText);
+        }
 
         return text;
     }
@@ -107,22 +124,6 @@ public class Game extends Communication{
     }
 
 
-    private String drawPlayingCards(){
-        String text = "";
-        Card topCard;
-        if(this.cards.isEmpty()) topCard = null;
-        else topCard = this.cards.peek();
-
-        for(int j = 0; j < this._cardHeight; j++){
-            text = text.concat("     ");
-            if(topCard != null){
-                text = text.concat(topCard.draw(j, this._cardWidth, this._cardHeight));
-            }
-            text = text.concat("\n");
-        }
-
-        return text;
-    }
 
 
     private void gameLogic(Player currentPlayer) throws IOException {
