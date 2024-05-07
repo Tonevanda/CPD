@@ -9,8 +9,8 @@ public class Game extends Communication{
 
     private final Stack<Card> cards = new Stack<>();
 
-    final private int _cardHeight = 15;
-    final private int _cardWidth = 35;
+    final private int _cardHeight = 18;
+    final private int _cardWidth = 50;
 
 
 

@@ -1,3 +1,7 @@
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public class Card {
 
 
@@ -14,7 +18,8 @@ public class Card {
         SIX,
         SEVEN,
         EIGHT,
-        NINE
+        NINE,
+        ANTEATER
 
     }
 
@@ -22,17 +27,36 @@ public class Card {
 
     private String _owner;
 
-    private String _art;
+    private List<String> _art = new ArrayList<>();
 
     Card(int type, String owner){
 
         this._owner = owner;
         this._type = Type.values()[type];
+        String ascii = "";
         switch(this._type){
-            case ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE ->{
-                this._art = "";
+            case ANTEATER -> {
+                ascii = "               _,,......_\n" +
+                        "            ,-'          `'--.\n" +
+                        "         ,-'  _              '-.\n" +
+                        "(`.    ,'   ,  `-.              `.\n" +
+                        " \\ \\  -    / )    \\               \\\n" +
+                        "  `\\`-^^^, )/      |     /         :\n" +
+                        "    )^ ^ ^V/            /          '.\n" +
+                        "    |      )            |           `.\n" +
+                        "    9   9 /,--,\\    |._:`         .._`.\n" +
+                        "    |    /   /  `.  \\    `.      (   `.`.\n" +
+                        "    |   / \\  \\    \\  \\     `--\\   )    `.`.___\n" +
+                        "   .;;./  '   )   '   )       ///'       `-\"'\n" +
+                        "   `--'   7//\\    ///\\";
             }
         }
+        fillArt(ascii);
+    }
+
+    public void fillArt(String ascii){
+        if(!ascii.isEmpty())
+            this._art = Arrays.asList(ascii.split("\n"));
     }
 
     public String getOwner(){return this._owner;}
@@ -40,7 +64,7 @@ public class Card {
 
     public boolean isCreature(){
         switch(this._type){
-            case ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE ->{
+            case ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, ANTEATER ->{
                 return true;
             }
         }
@@ -55,6 +79,7 @@ public class Card {
             case ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE ->{
                 return this._type.ordinal();
             }
+            case ANTEATER -> {return 8;}
         }
         return 0;
     }
@@ -85,6 +110,11 @@ public class Card {
                 startingIndex += value.length();
 
             }
+            else if(row-2 <this._art.size()){
+                text = text.concat(this._art.get(row-2));
+                startingIndex += this._art.get(row-2).length();
+            }
+
             for (int i = startingIndex; i < width - 1; i++) {
                 if(row == height - 1) text = text.concat("_");
                 else text = text.concat(" ");

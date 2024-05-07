@@ -27,7 +27,7 @@ public class Player{
 
     private List<Card> _discardPile;
 
-    private final int _maxHandSize = 4;
+    private final int _maxHandSize = 3;
 
     private String _text = "";
 
@@ -62,7 +62,7 @@ public class Player{
         this._discardPile = new ArrayList<>();
         this.hand = new ArrayList<>();
         this._text = "";
-        for(int i = 0; i < 10; i++){
+        for(int i = 0; i < 11; i++){
             this.deck.add(new Card(i, _name));
         }
         Collections.shuffle(this.deck);
