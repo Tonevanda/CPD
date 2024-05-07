@@ -1,5 +1,10 @@
 import java.net.*;
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -23,18 +28,22 @@ public class Client extends Communication{
         QUIT
     }
  
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
         Client client = new Client();
         client.startClient();
 
     }
 
-    private void startClient(){
+    private void startClient() throws IOException {
 
         System.out.println(CLEAR_SCREEN.concat("Client started"));
 
         State state = State.AUTHENTICATION;
+
+        ReadableByteChannel inChannel = Channels.newChannel(System.in);
+        WritableByteChannel outChannel = Channels.newChannel(System.out);
+        ByteBuffer buffer = ByteBuffer.allocate(70);
 
         try (Socket socket = new Socket(hostname, port)) {
 
@@ -47,6 +56,10 @@ public class Client extends Communication{
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
             Scanner scanner = new Scanner(System.in);
+
+
+
+            List<String> gameResponse = new ArrayList<>();
 
             while(state != State.QUIT) {
                 switch (state) {
@@ -90,7 +103,23 @@ public class Client extends Communication{
                         }
                     }
                     case GAME -> {
-                        List<String> response = read(reader, writer);
+                        if(reader.ready()){
+                            List<String> response = read(reader);
+                            if(response.getFirst().equals("0")){
+                                gameResponse = response;
+                            }
+
+                            System.out.println(response.getLast());
+                        }
+                        if(!gameResponse.isEmpty()){
+                            if(inChannel.read(buffer) > 0){
+                                buffer.flip();
+                                write(writer, StandardCharsets.UTF_8.decode(buffer).toString().trim());
+                                buffer.clear();
+                                gameResponse.clear();
+                            }
+                        }
+                        /*
                         System.out.println(response.getLast());
                         if(response.getFirst().equals("0")){
                             String move = scanner.nextLine();
@@ -101,17 +130,26 @@ public class Client extends Communication{
                             System.out.println(read(reader, writer).getLast());
                             System.out.println(read(reader, writer).getLast());
                             System.out.println(read(reader, writer).getLast());
-                        }
+                        }*/
                     }
                 }
             }
+
+
 
 
         } catch (UnknownHostException ex) {
             System.out.println("Server not found: " + ex.getMessage());
         } catch (IOException ex) {
             System.out.println("I/O error: " + ex.getMessage());
+        }catch (Exception ex) {
+            System.out.println("An unexpected error occurred: " + ex.getMessage());
         }
+        finally{
+            outChannel.close();
+            inChannel.close();
+        }
+
     }
 
     private ArrayList<String> getCredentials(Scanner scanner) {

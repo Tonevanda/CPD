@@ -21,17 +21,15 @@ public class Player{
 
     private String _serverState = "MENU";
 
-    private List<Card> deck;
+    private List<Card> hand = new ArrayList<>();
+    private List<Card> storeCards = new ArrayList<>();
 
-    private List<Card> hand;
+    private int _handWidth = 1;
 
-    private List<Card> _discardPile;
 
-    private final int _maxHandSize = 3;
+    private int _health = 150;
 
-    private String _text = "";
-
-    private int _lives = 3;
+    private int _gold = 5;
 
     private boolean _inGame = false;
 
@@ -57,16 +55,11 @@ public class Player{
     }
 
     public void resetPlayerGameInfo(){
-        this._lives = 3;
-        this.deck = new ArrayList<>();
-        this._discardPile = new ArrayList<>();
-        this.hand = new ArrayList<>();
-        this._text = "";
-        for(int i = 0; i < 11; i++){
-            this.deck.add(new Card(i, _name));
-        }
-        Collections.shuffle(this.deck);
-        drawCardsAction(_maxHandSize);
+        this._health = 150;
+        this._gold = 5;
+        this.hand.clear();
+        this.storeCards.clear();
+        this._handWidth = 1;
     }
 
     public String getServerState(){return this._serverState;}
@@ -92,14 +85,24 @@ public class Player{
 
     public MyTimerTask getTimerTask(){return this._timerTask;}
 
-    public String getText(){ return this._text; }
 
 
-    public int getLives(){return this._lives;}
+    public List<Card> getStoreCards(){return this.storeCards;}
+
+    public int getStoreCardsSize(){return this.storeCards.size();}
+
+    public Card getStoreCard(int cardIndice){return this.storeCards.get(cardIndice);}
+
+    public int getHandWidth(){return this._handWidth;}
+
+    public int getGold(){return this._gold;}
+    public int getHealth(){return this._health;}
 
     public Card getCard(int cardNumber) { return this.hand.get(cardNumber); }
 
     public int getHandCardsCount() { return this.hand.size(); }
+
+    public List<Card> getHandCards(){return this.hand;}
 
     public void updateRank(int score, boolean isWinner){
 
@@ -118,8 +121,6 @@ public class Player{
 
 
 
-    public void setText(String text){ this._text = text; }
-
     public void setReader(BufferedReader reader){this._reader = reader;}
 
     public void setWriter(PrintWriter writer){
@@ -130,7 +131,30 @@ public class Player{
     public void closeTimer(){this._timer.cancel();}
 
 
-    public void drawCardsAction(int quantity){
+    public void resetStoreCards(){this.storeCards.clear();}
+    public void addStoreCard(Card card){this.storeCards.add(card);}
+
+    public void removeStoreCard(int cardIndice){
+        this.storeCards.remove(cardIndice);
+    }
+
+    public void addHandCard(Card card){
+        this.hand.add(new Card(card.getType()));
+        this._handWidth += card.getWidth();
+    }
+
+
+    public void takeDamage(int damage){this._health -= damage;}
+
+    public void triggerCardEffects(Player enemyPlayer, int time){
+        for(Card card : this.hand){
+            card.triggerEffect(this, enemyPlayer, time);
+        }
+    }
+
+
+
+    /*public void drawCardsAction(int quantity){
         for(int i = 0; i < quantity; i++){
             if(this.deck.isEmpty()) reshuffleDeck();
             this.hand.add(this.deck.getFirst());
@@ -144,16 +168,6 @@ public class Player{
         this._discardPile = new ArrayList<>();
     }
 
-    public void drawHand(int cardWidth, int cardHeight){
-
-        for(int j = 0; j < cardHeight; j++){
-            this._text = _text.concat("     ");
-            for (Card card : this.hand) {
-                this._text = this._text.concat(card.draw(j, cardWidth, cardHeight));
-            }
-            this._text = this._text.concat("\n");
-        }
-    }
 
     public void discardCard(Card card){
         this._discardPile.add(card);
@@ -173,5 +187,5 @@ public class Player{
         }
         this._lives--;
         return true;
-    }
+    }*/
 }

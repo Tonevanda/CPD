@@ -6,53 +6,113 @@ import java.util.List;
 public class Card {
 
 
+    private int _width = 30;
+
+
+
 
 
 
     enum Type{
-        ZERO,
-        ONE,
-        TWO,
-        THREE,
-        FOUR,
-        FIVE,
-        SIX,
-        SEVEN,
-        EIGHT,
-        NINE,
+        SWORD,
         ANTEATER
+
+
 
     }
 
+
     final private Type _type;
 
-    private String _owner;
 
     private List<String> _art = new ArrayList<>();
 
-    Card(int type, String owner){
+    private List<String> _description = new ArrayList<>();
 
-        this._owner = owner;
+    private int _gold = 5;
+
+    private int _cooldown = 5;
+
+    private int _index = 0;
+
+
+
+    Card(int type){
+
         this._type = Type.values()[type];
         String ascii = "";
+        String power = "";
         switch(this._type){
+            case SWORD -> {
+                ascii = """
+                            ()
+                            )(
+                         o======o
+                            ||
+                            ||
+                            ||
+                            ||
+                            ||
+                            ||
+                            ||
+                            ||
+                            ||
+                            \\/\
+                        """;
+                this._width = 11;
+                this._gold = 1;
+                this._cooldown = 7;
+                power = "3 Damage";
+            }
             case ANTEATER -> {
-                ascii = "               _,,......_\n" +
-                        "            ,-'          `'--.\n" +
-                        "         ,-'  _              '-.\n" +
-                        "(`.    ,'   ,  `-.              `.\n" +
-                        " \\ \\  -    / )    \\               \\\n" +
-                        "  `\\`-^^^, )/      |     /         :\n" +
-                        "    )^ ^ ^V/            /          '.\n" +
-                        "    |      )            |           `.\n" +
-                        "    9   9 /,--,\\    |._:`         .._`.\n" +
-                        "    |    /   /  `.  \\    `.      (   `.`.\n" +
-                        "    |   / \\  \\    \\  \\     `--\\   )    `.`.___\n" +
-                        "   .;;./  '   )   '   )       ///'       `-\"'\n" +
-                        "   `--'   7//\\    ///\\";
+                ascii = """
+                                       _,,......_
+                                    ,-'          `'--.
+                                 ,-'  _              '-.
+                        (`.    ,'   ,  `-.              `.
+                         \\ \\  -    / )    \\               \\
+                          `\\`-^^^, )/      |     /         :
+                            )^ ^ ^V/            /          '.
+                            |      )            |           `.
+                            9   9 /,--,\\    |._:`         .._`.
+                            |    /   /  `.  \\    `.      (   `.`.
+                            |   / \\  \\    \\  \\     `--\\   )    `.`.___
+                           .;;./  '   )   '   )       ///'       `-"'
+                           `--'   7//\\    ///\\""";
+
+                this._width = 47;
+                this._gold = 1;
+                this._cooldown = 24;
+                power = "50 Damage";
+
             }
         }
+
         fillArt(ascii);
+        fillDescription(power);
+
+    }
+
+    public void fillDescription(String power){
+        if(!power.isEmpty()){
+            while(true){
+                if(power.length() <= this._width-1){
+                    this._description.add(power);
+                    break;
+                }
+                String line = power.substring(0, this._width-1);
+
+
+                power = power.substring(this._width-1);
+
+                while(!line.endsWith(" ") && !power.startsWith(" ")){
+                    power = Character.toString(line.charAt(line.length()-1)).concat(power);
+                    line = line.substring(0, line.length()-1);
+                }
+                this._description.add(line);
+            }
+        }
+
     }
 
     public void fillArt(String ascii){
@@ -60,47 +120,23 @@ public class Card {
             this._art = Arrays.asList(ascii.split("\n"));
     }
 
-    public String getOwner(){return this._owner;}
+    public void setIndex(int index){this._index = index;}
+    public int getWidth(){return this._width;}
 
+    public int getType(){return this._type.ordinal();}
 
-    public boolean isCreature(){
-        switch(this._type){
-            case ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, ANTEATER ->{
-                return true;
-            }
-        }
-        return false;
-    }
+    public int getGold(){return this._gold;}
 
 
 
-
-    public int getValue() {
-        switch(this._type){
-            case ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE ->{
-                return this._type.ordinal();
-            }
-            case ANTEATER -> {return 3;}
-        }
-        return 0;
-    }
-
-
-    public void triggerOnPlayEffects(Player currentPlayer){
-        switch(this._type){
-            case ANTEATER -> {
-                List<Integer> cardIndices = new ArrayList<>();
-                for(int i = 0; i < currentPlayer.getHandCardsCount(); i++){
-                    Card card = currentPlayer.getCard(i);
-                    if(card.isCreature() && card.getValue() < getValue()){
-                        cardIndices.add(i);
-                    }
+    public void triggerEffect(Player friendlyPlayer, Player enemyPlayer, int time){
+        if(time % this._cooldown == 0) {
+            switch (this._type) {
+                case SWORD -> {
+                    enemyPlayer.takeDamage(3);
                 }
-                if(!cardIndices.isEmpty()){
-                    Collections.shuffle(cardIndices);
-                    currentPlayer.discardCard(currentPlayer.getCard(cardIndices.getFirst()));
-                    currentPlayer.playCard(cardIndices.getFirst());
-
+                case ANTEATER -> {
+                    enemyPlayer.takeDamage(50);
                 }
             }
         }
@@ -108,38 +144,38 @@ public class Card {
 
 
 
-    public String draw(int row, int width, int height){
-        String value;
-        if(isCreature()){
-            value = Integer.toString(getValue());
-        }
-        else{
-            value = " ";
-        }
+
+
+    public String draw(int row, int height){
+        String cooldown = Integer.toString(this._cooldown);
+        String gold = Integer.toString(this._gold);
+        String index = Integer.toString(this._index);
         String text = "";
         int startingIndex = 1;
 
         if(row == 0){
-            text = text.concat(" ");
-            for(int i = startingIndex; i < width - 1; i++){
+            for(int i = startingIndex; i < this._width; i++){
                 text = text.concat("_");
             }
             text = text.concat(" ");
         }
         else{
-            text = text.concat("|");
 
             if(row == 1){
-                text = text.concat(value);
-                startingIndex += value.length();
+                text = text.concat(gold).concat("$ ").concat(cooldown).concat("s (").concat(index).concat(")");
+                startingIndex += gold.length()+cooldown.length()+index.length()+6;
 
             }
             else if(row-2 <this._art.size()){
                 text = text.concat(this._art.get(row-2));
                 startingIndex += this._art.get(row-2).length();
             }
+            else if(row-2-this._art.size() < this._description.size()){
+                text = text.concat(this._description.get(row-2-this._art.size()));
+                startingIndex += this._description.get(row-2-this._art.size()).length();
+            }
 
-            for (int i = startingIndex; i < width - 1; i++) {
+            for (int i = startingIndex; i < this._width; i++) {
                 if(row == height - 1) text = text.concat("_");
                 else text = text.concat(" ");
             }

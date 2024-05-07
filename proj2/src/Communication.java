@@ -36,6 +36,28 @@ public abstract class Communication {
     }
 
 
+    public List<String> read(BufferedReader reader)throws IOException{
+        try {
+            List<String> res = new ArrayList<>();
+            String response = reader.readLine();
+            if(response == null) throw new SocketException();
+            if(response.isEmpty()){
+                res.add(Character.toString(NO_ENCODE));
+                res.add("");
+            }
+            else if(response.length() == 1){
+                res.add(Character.toString(response.charAt(0)));
+                res.add("");
+            }
+            else{
+                res.add(Character.toString(response.charAt(0)));
+                res.add(response.substring(1));
+            }
+            return res;
+        }catch(SocketException e){
+            throw e;
+        }
+    }
 
     public List<String> read(BufferedReader reader, PrintWriter writer) throws IOException {
         try {
@@ -80,6 +102,9 @@ public abstract class Communication {
             throw e;
         }
     }
+
+
+
 
 
 

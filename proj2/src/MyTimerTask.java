@@ -34,6 +34,14 @@ public class MyTimerTask extends TimerTask {
 
 
 
+    public MyTimerTask(){
+        this._connectionCheckInterval = 10;
+        this._connectionTimeout = 10;
+        this._connectionTime = this._connectionTimeout;
+        this._disconnectionTimeout = 10;
+        this._disconnectionTime = _disconnectionTimeout;
+    }
+
     public MyTimerTask(int connectionCheckInterval, int connectionTimeout, int disconnectionTimeout){
         this._connectionCheckInterval = connectionCheckInterval;
         this._connectionTimeout = connectionTimeout;

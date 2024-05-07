@@ -43,6 +43,8 @@ public class Server extends Communication{
 
     private final List<ReentrantLock> locks = new ArrayList<>();
 
+    private final List<Card> gameStore = new ArrayList<>();
+
     enum State{
         AUTHENTICATION,
         MENU,
@@ -248,6 +250,10 @@ public class Server extends Communication{
 
             System.out.println("Server is listening on port " + port);
 
+            for(int i = 0; i <= 1; i++){
+                this.gameStore.add(new Card(i));
+            }
+
             Thread.startVirtualThread(()->{
                 Timer timer = new Timer();
                 MyTimerTask timerTask = new MyTimerTask(CONNECTION_CHECK_INTERVAL, CONNECTION_CHECK_TIMEOUT, DISCONNECT_TIMEOUT);
@@ -396,7 +402,7 @@ public class Server extends Communication{
                 this.currentAuths.get(player.getName()).setInGame(true);
             }
             Collections.shuffle(players);
-            Game game = new Game(players, gamemode);
+            Game game = new Game(players, this.gameStore, gamemode);
             try {
                 game.run();
                 for(Player player : game.get_players()){
