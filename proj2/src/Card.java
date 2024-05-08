@@ -432,11 +432,12 @@ public class Card {
             }
             case KNIFE -> {
                 ascii = """
+                                    \n \n\s
                                     /\\
                         /vvvvvvvvvvvv \\--------------------,
                         `^^^^^^^^^^^^ /==================="
                                     \\/
-                         \n \n""";
+                         \n\s""";
 
                 this._width = 37;
                 this._gold = 5;
