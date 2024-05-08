@@ -185,7 +185,7 @@ public class Card {
                 this._width = 31;
                 this._gold = 3;
                 this._cooldown = 9;
-                power = "3 Strength";
+                power = "+3 Strength";
             }
             case CASTLE -> {
                 ascii = """
@@ -205,7 +205,7 @@ public class Card {
                 this._width = 41;
                 this._gold = 4;
                 this._cooldown = 9;
-                power = "2 Strength, heal 15. Bought: 1 Strength";
+                power = "+2 Strength, heal 15. Bought: +1 Strength";
             }
             case COIN -> {
                 ascii = """
@@ -258,7 +258,7 @@ public class Card {
                          \n \n""";
                 this._width = 30;
                 this._gold = 1;
-                power = "20 Speed";
+                power = "+20 Speed";
             }
             case SHOVEL -> {
                 ascii = """
@@ -299,7 +299,7 @@ public class Card {
                 this._gold = 1;
                 this._cooldown = 10;
                 this._armor = 10;
-                power = "10 Armor. Bought: 10 Armor";
+                power = "+10 Armor. Bought: +10 Armor";
             }
             case TEDDY -> {
                 ascii = """
@@ -320,7 +320,7 @@ public class Card {
                 this._gold = 4;
                 this._cooldown = 9;
                 this._armor = 1;
-                power = "1 Armor. +1 Armor per ability triggered";
+                power = "+1 Armor. +1 Armor per ability triggered";
             }
             case SCROLL -> {
                 ascii = """

@@ -40,7 +40,7 @@ public class Game extends Communication{
 
     private MyTimerTask timerTask;
 
-    //private Random random = new Random();
+
 
     private final int TIMER_INTERVAL = 1000;
 
@@ -88,7 +88,7 @@ public class Game extends Communication{
             write(player.getWriter(), "", '0');
             flush(player.getWriter());
         }
-
+        Player nonPlayingPlayer = null;
 
         while (this.state != State.END) {
             switch(this.state){
@@ -114,13 +114,20 @@ public class Game extends Communication{
                             this.state = State.FIGHT;
                             Collections.shuffle(this.players);
                             List<Player> fight = new ArrayList<>();
+                            if(nonPlayingPlayer != null){
+                                fight.add(nonPlayingPlayer);
+                            }
                             for(Player p : this.players){
+                                if(nonPlayingPlayer != null && p.getName().equals(nonPlayingPlayer.getName())) continue;
                                 fight.add(p);
                                 if(fight.size() == 2){
                                     this.fights.add(fight);
                                     drawFightState(fight);
                                     fight = new ArrayList<>();
                                 }
+                            }
+                            if(!fight.isEmpty()){
+                                nonPlayingPlayer = fight.getFirst();
                             }
 
                             timerTask.setTimer(0);
@@ -132,6 +139,12 @@ public class Game extends Communication{
                 case FIGHT -> {
                     System.out.print("");
                     if(timerTask.timeChanged()){
+                        if(nonPlayingPlayer != null){
+                            if(!nonPlayingPlayer.getTimerTask().getDisconnected() && nonPlayingPlayer.getTimerTask().getAlreadyDisconnectedOnce())
+                                reconnectPlayer(nonPlayingPlayer);
+                            getInputAndVerifyConnection(nonPlayingPlayer);
+
+                        }
                         fightHandler();
 
                         if(this.finishedStatePlayersCount >= players.size() || timerTask.getTime() > FIGHT_TIMEOUT){
@@ -141,7 +154,11 @@ public class Game extends Communication{
                             this.state = State.STORE;
                             this.players.sort((p1, p2) -> (p2.getHealth() - p1.getHealth()));
                             for(Player player : this.players){
-                                player.resetEffects();
+                                if(nonPlayingPlayer != null && nonPlayingPlayer.getName().equals(player.getName())){
+                                    player.setGold(player.getGold()+1);
+                                }
+                                else player.resetEffects();
+
                                 refillStore(player);
                                 drawStoreState(player, false);
                                 write(player.getWriter(), "", '0');
@@ -215,6 +232,7 @@ public class Game extends Communication{
     }
 
     public void fightHandler() throws IOException {
+
         for(int i = 0; i < this.fights.size(); i++){
             List<Player> fight = this.fights.get(i);
             Player player1 = fight.getFirst();
