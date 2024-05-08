@@ -102,7 +102,6 @@ public class Player{
     public int getGold(){return this._gold;}
     public int getHealth(){return this._health;}
 
-    public Card getCard(int cardNumber) { return this.hand.get(cardNumber); }
 
     public int getHandCardsCount() { return this.hand.size(); }
 
@@ -184,21 +183,13 @@ public class Player{
         String text = "     |".concat(_name);
         text = text.concat(" #").concat(Integer.toString(_rank));
         text = text.concat(" +").concat(Integer.toString(_health));
+        text = text.concat("/").concat(Integer.toString(_maxHealth));
         if(showStats){
-            text = text.concat("/").concat(Integer.toString(_maxHealth));
             text = text.concat(" $").concat(Integer.toString(_gold));
         }
         text = text.concat("|");
         return text;
     }
 
-    /*
 
-    public boolean hasLost(Card boardCard){
-        for(Card card : this.hand){
-            if(card.getValue() >= boardCard.getValue()) return false;
-        }
-        this._lives--;
-        return true;
-    }*/
 }

@@ -3,6 +3,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.Selector;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -41,9 +42,8 @@ public class Client extends Communication{
 
         State state = State.AUTHENTICATION;
 
-        ReadableByteChannel inChannel = Channels.newChannel(System.in);
-        WritableByteChannel outChannel = Channels.newChannel(System.out);
-        ByteBuffer buffer = ByteBuffer.allocate(70);
+
+
 
         try (Socket socket = new Socket(hostname, port)) {
 
@@ -55,6 +55,7 @@ public class Client extends Communication{
             InputStream input = socket.getInputStream();
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
+            Reader terminalReader = new InputStreamReader(System.in);
             Scanner scanner = new Scanner(System.in);
 
 
@@ -103,34 +104,36 @@ public class Client extends Communication{
                         }
                     }
                     case GAME -> {
+                        System.out.print("");
                         if(reader.ready()){
                             List<String> response = read(reader);
-                            if(response.getFirst().equals("0")){
+                            if(response.getFirst().equals(Character.toString(TIMER_ENCODE))){
+                                write(writer, "", ALIVE_ENCODE);
+                            }
+                            else if(response.getFirst().equals("0")){
                                 gameResponse = response;
+                                System.out.println(response.getLast());
+                            }
+                            else if(response.getFirst().equals("1")){
+                                System.out.println(response.getLast());
+                                gameResponse.clear();
+                                state = State.MENU;
+                                System.out.println(read(reader, writer).getLast());
+                                System.out.println(read(reader, writer).getLast());
+                                System.out.println(read(reader, writer).getLast());
+                            }
+                            else{
+                                System.out.println(response.getLast());
                             }
 
-                            System.out.println(response.getLast());
                         }
                         if(!gameResponse.isEmpty()){
-                            if(inChannel.read(buffer) > 0){
-                                buffer.flip();
-                                write(writer, StandardCharsets.UTF_8.decode(buffer).toString().trim());
-                                buffer.clear();
+
+                            if(terminalReader.ready()){
+                                write(writer, scanner.nextLine());
                                 gameResponse.clear();
                             }
                         }
-                        /*
-                        System.out.println(response.getLast());
-                        if(response.getFirst().equals("0")){
-                            String move = scanner.nextLine();
-                            write(writer, move);
-                        }
-                        else if(response.getFirst().equals("1")) {
-                            state = State.MENU;
-                            System.out.println(read(reader, writer).getLast());
-                            System.out.println(read(reader, writer).getLast());
-                            System.out.println(read(reader, writer).getLast());
-                        }*/
                     }
                 }
             }
@@ -145,10 +148,7 @@ public class Client extends Communication{
         }catch (Exception ex) {
             System.out.println("An unexpected error occurred: " + ex.getMessage());
         }
-        finally{
-            outChannel.close();
-            inChannel.close();
-        }
+
 
     }
 

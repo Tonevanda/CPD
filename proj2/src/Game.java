@@ -64,6 +64,9 @@ public class Game extends Communication{
         this.timer.schedule(timerTask, 0, TIMER_INTERVAL);
 
         for(Player player : players){
+            player.resetEffects();
+            player.resetStoreCards();
+            player.resetPlayerGameInfo();
             writers.add(player.getWriter());
         }
 
@@ -73,14 +76,11 @@ public class Game extends Communication{
         this._gamemode = gamemode;
     }
 
-    public List<Player> get_players(){
-        return players;
-    }
 
     public void run() throws IOException {
         System.out.println("Game started");
 
-        this.players.sort((p1, p2)-> (p2.getHealth() - p1.getHealth()));
+        this.players.sort((p1, p2) -> (p2.getHealth() - p1.getHealth()));
 
         for(Player player : this.players) {
             refillStore(player);
@@ -93,14 +93,23 @@ public class Game extends Communication{
         while (this.state != State.END) {
             switch(this.state){
                 case STORE -> {
-                    for(Player player : this.players) {
-                        if(player.getReader().ready()){
-                            List<String> response = read(player.getReader());
-                            storeHandler(player, response.getLast());
+                    System.out.print("");
+                    for(int i = 0; i < this.players.size(); i++) {
+                        Player player = this.players.get(i);
+                        if(player.getTimerTask().getTimedOut()){
+                            leaveGame(player);
+                            continue;
+                        }
+                        if(!player.getTimerTask().getDisconnected() && player.getTimerTask().getAlreadyDisconnectedOnce())
+                            reconnectPlayer(player);
+
+                        String move = getInputAndVerifyConnection(player);
+                        if(move != null){
+                            storeHandler(player, move);
                         }
 
 
-                        if(this.finishedStatePlayersCount == this.players.size()) {
+                        if(this.finishedStatePlayersCount >= this.players.size()) {
                             this.finishedStatePlayersCount = 0;
                             this.state = State.FIGHT;
                             Collections.shuffle(this.players);
@@ -125,7 +134,7 @@ public class Game extends Communication{
                     if(timerTask.timeChanged()){
                         fightHandler();
 
-                        if(this.finishedStatePlayersCount == players.size() || timerTask.getTime() > 30){
+                        if(this.finishedStatePlayersCount >= players.size() || timerTask.getTime() > FIGHT_TIMEOUT){
                             this.finishedStatePlayersCount = 0;
                             this.fights.clear();
                             this.state = State.STORE;
@@ -136,9 +145,10 @@ public class Game extends Communication{
                                 write(player.getWriter(), "", '0');
                                 flush(player.getWriter());
                             }
-                            this.players.sort((p1, p2)-> (p2.getHealth() - p1.getHealth()));
+                            this.players.sort((p1, p2) -> (p2.getHealth() - p1.getHealth()));
                             timerTask.setTimer(0);
                             timerTask.resetTimer();
+                            if(this.players.size() == 1) state = State.END;
                         }
                     }
 
@@ -146,20 +156,52 @@ public class Game extends Communication{
             }
 
         }
-            /*
 
-            gameLogic(currentPlayer);
 
+
+        Player winner = this.players.getFirst();
+        leaveGame(winner);
+
+        System.out.println("Game ended");
+    }
+
+    public String getInputAndVerifyConnection(Player player) throws IOException {
+        if(player.getReader().ready() || (player.getTimerTask().getDisconnected() && !player.getTimerTask().getAlreadyDisconnectedOnce())){
+            List<String> response;
+            try {
+                response = read(player.getReader());
+            }catch(SocketException e){
+                player.getTimerTask().setAlreadyDisconnectedOnce(true);
+                return null;
+            }
+            player.getTimerTask().resetConnectionTime();
+            if(!response.getFirst().equals(Character.toString(ALIVE_ENCODE))){
+                return response.getLast();
+            }
 
         }
+        return null;
+    }
 
-        Player winner = this.currentPlayers.getFirst();
-        write(winner.getWriter(), "Congratulations, you won!", '1');
-        flush(winner.getWriter());
-        if(_gamemode == 'b')winner.updateRank(currentScore, true);
-        winner.resetPlayerGameInfo();
+    public void reconnectPlayer(Player player){
+        player.getTimerTask().setAlreadyDisconnectedOnce(false);
+        if(this.state == State.STORE){
+            drawStoreState(player, false);
+            write(player.getWriter(), "", '0');
+            flush(player.getWriter());
+        }
 
-        System.out.println("Game ended");*/
+
+    }
+
+    public void reconnectFight(Player player1, Player player2) throws IOException {
+        if(!player1.getTimerTask().getDisconnected() && player1.getTimerTask().getAlreadyDisconnectedOnce())
+            reconnectPlayer(player1);
+        if(!player2.getTimerTask().getDisconnected() && player2.getTimerTask().getAlreadyDisconnectedOnce())
+            reconnectPlayer(player2);
+
+        getInputAndVerifyConnection(player1);
+        getInputAndVerifyConnection(player2);
     }
 
     public void storeHandler(Player currentPlayer, String userInput){
@@ -171,11 +213,13 @@ public class Game extends Communication{
 
     }
 
-    public void fightHandler(){
+    public void fightHandler() throws IOException {
         for(int i = 0; i < this.fights.size(); i++){
             List<Player> fight = this.fights.get(i);
             Player player1 = fight.getFirst();
             Player player2 = fight.getLast();
+            reconnectFight(player1, player2);
+
             player1.triggerCardEffects(player2);
             player2.triggerCardEffects(player1);
             drawFightState(fight);
@@ -183,10 +227,36 @@ public class Game extends Communication{
                 finishedStatePlayersCount += 2;
                 this.fights.remove(i);
                 i--;
+                if(player1.getHealth() <= 0 && player2.getHealth() <= 0 && player2.getHealth() < player1.getHealth()){
+                    leaveGame(player2);
+                    leaveGame(player1);
+                }
+                else if(player1.getHealth() <= 0) leaveGame(player1);
+                else if(player2.getHealth() <= 0)leaveGame(player2);
+
 
             }
         }
 
+    }
+
+    public void leaveGame(Player player){
+
+        if(_gamemode == 'b'){
+            player.updateRank(currentScore, this.players.size() == 1);
+            if(this.players.size() > 1)currentScore += SCORE_RANGE / (this.players.size() - 1);
+        }
+
+        for(int i = 0; i < this.players.size(); i++){
+            if(this.players.get(i).getName().equals(player.getName())){
+                this.players.remove(i);
+                break;
+            }
+        }
+        if(this.players.isEmpty()) write(player.getWriter(), "Congratulations, you won!", '1');
+        else write(player.getWriter(), "You lost!", '1');
+        flush(player.getWriter());
+        player.setInGame(false);
     }
 
     public MoveType getMoveType(Player currentPlayer, String userInput){

@@ -26,7 +26,7 @@ public class Server extends Communication{
 
 
     final int port = 8080;
-    final static int NUM_PLAYERS = 2;
+    final static int NUM_PLAYERS = 4;
     final static String dbPath = "./database/database.json";
 
     private final int TIMER_INTERVAL = 1000;
@@ -35,10 +35,10 @@ public class Server extends Communication{
 
     private final int DISCONNECT_TIMEOUT = 30;
 
-    private final int CONNECTION_CHECK_TIMEOUT = 5;
+    private final int CONNECTION_CHECK_TIMEOUT = 6;
 
 
-    private final int CONNECTION_CHECK_INTERVAL = 1;
+    private final int CONNECTION_CHECK_INTERVAL = 2;
 
 
     private final List<ReentrantLock> locks = new ArrayList<>();
@@ -79,12 +79,9 @@ public class Server extends Communication{
                     case AUTHENTICATION -> {
                         player = handleAuthentication(reader, writer);
                         state = State.valueOf(player.getServerState());
-                        if(state == State.QUEUE){
+                        if(state == State.QUEUE || state == State.GAME){
                             gamemode = 'i';
                             player.getTimerTask().setMode(1);
-                        }
-                        else if(state == State.GAME) {
-                            player.setServerState("GAME");
                         }
                     }
                     case MENU -> {
@@ -115,7 +112,8 @@ public class Server extends Communication{
                         if (this.currentAuths.get(player.getName()).getInGame()) {
                             state = State.GAME;
                             player.setServerState("GAME");
-                            player.getTimerTask().setMode(0);
+                            player.getTimerTask().setMode(1);
+                            player.getTimerTask().setTimer(0);
                         } else if (player.getTimerTask().timeChanged()){
                             write(player.getWriter(), CLEAR_SCREEN.concat("Waiting for game to start. ").concat(Integer.toString(player.getTimerTask().getTime()).concat(" seconds have passed")), '1');
                             flush(player.getWriter());
@@ -134,6 +132,8 @@ public class Server extends Communication{
                         }
                         else if (!this.currentAuths.get(player.getName()).getInGame()){
                             state = State.MENU;
+                            player.getTimerTask().setMode(0);
+                            player.getTimerTask().setTimer(0);
                         }
 
                     }
@@ -403,11 +403,7 @@ public class Server extends Communication{
             Game game = new Game(players, this.gameStore, gamemode);
             try {
                 game.run();
-                for(Player player : game.get_players()){
-                    if(!player.getTimerTask().getTimedOut()) {
-                        this.currentAuths.get(player.getName()).setInGame(false);
-                    }
-                }
+
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

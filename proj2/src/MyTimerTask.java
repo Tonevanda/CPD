@@ -23,6 +23,8 @@ public class MyTimerTask extends TimerTask {
 
     private boolean _isDisconnected = false;
 
+    private boolean _alreadyDisconnectedOnce = false;
+
     private PrintWriter _writer;
 
     enum State{
@@ -84,7 +86,13 @@ public class MyTimerTask extends TimerTask {
         }
     }
 
-    public void setDisconnected(boolean isDisconnected){this._isDisconnected = isDisconnected;}
+    public void setDisconnected(boolean isDisconnected){
+        this._isDisconnected = isDisconnected;
+    }
+
+    public void setAlreadyDisconnectedOnce(boolean alreadyDisconnectedOnce){this._alreadyDisconnectedOnce = alreadyDisconnectedOnce;}
+
+    public boolean getAlreadyDisconnectedOnce(){return this._alreadyDisconnectedOnce;}
 
 
 
@@ -143,7 +151,6 @@ public class MyTimerTask extends TimerTask {
                 if(!this._isDisconnected && this._verifyConnection &&  !this._timedOut && this._time % this._connectionCheckInterval == 0){
                     this._connectionTime--;
 
-                    //System.out.println("SENT VERIFY IF CONNECTION ALIVE MESSAGE");
                     _writer.println("T");
                     _writer.flush();
                 }
