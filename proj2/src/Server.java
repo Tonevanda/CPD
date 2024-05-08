@@ -26,7 +26,7 @@ public class Server extends Communication{
 
 
     final int port = 8080;
-    final static int NUM_PLAYERS = 4;
+    final static int NUM_PLAYERS = 2;
     final static String dbPath = "./database/database.json";
 
     private final int TIMER_INTERVAL = 1000;
@@ -250,7 +250,7 @@ public class Server extends Communication{
 
             System.out.println("Server is listening on port " + port);
 
-            for(int i = 0; i <= 1; i++){
+            for(int i = 1; i <= 4; i++){
                 this.gameStore.add(new Card(i));
             }
 

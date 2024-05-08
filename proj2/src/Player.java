@@ -34,6 +34,8 @@ public class Player{
 
     private int _gold = 5;
 
+    private int _speed = 0;
+
     private boolean _inGame = false;
 
     public Player(String name, int rank, PrintWriter writer, BufferedReader reader, int timerInterval, int connectionCheckInterval, int connectionTimeout, int disconnectionTimeout){
@@ -61,9 +63,16 @@ public class Player{
         this._health = 300;
         this._maxHealth = 300;
         this._gold = 5;
-        this.hand.clear();
-        this.storeCards.clear();
+        this._speed = 0;
         this._handWidth = 1;
+        this.hand.clear();
+        for(int i = 0; i < 4; i++){
+            Card lock = new Card(0);
+            this.hand.add(lock);
+            this._handWidth += lock.getWidth();
+        }
+        this.storeCards.clear();
+
     }
 
     public String getServerState(){return this._serverState;}
@@ -97,9 +106,13 @@ public class Player{
 
     public Card getStoreCard(int cardIndice){return this.storeCards.get(cardIndice);}
 
+    public Card getHandCard(int cardIndice){return this.hand.get(cardIndice);}
+
     public int getHandWidth(){return this._handWidth;}
 
     public int getGold(){return this._gold;}
+
+    public int getSpeed(){return this._speed;}
     public int getHealth(){return this._health;}
 
 
@@ -133,6 +146,8 @@ public class Player{
 
     public void setGold(int gold){this._gold = gold;}
 
+    public void setSpeed(int speed){this._speed = speed;}
+
     public void closeTimer(){this._timer.cancel();}
 
 
@@ -152,9 +167,16 @@ public class Player{
     }
 
     public void removeHandCard(int cardIndice){
-        this._gold += this.hand.get(cardIndice).getGold();
         this._handWidth -= this.hand.get(cardIndice).getWidth();
         this.hand.remove(cardIndice);
+    }
+
+    public void increaseLockCosts(){
+        for(Card card : this.hand){
+            if(card.getType() == 0){
+                card.setGold(card.getGold()+2);
+            }
+        }
     }
 
     public void addHandCard(Card card){
@@ -170,22 +192,47 @@ public class Player{
         this.hand.set(cardIndice2, card1);
     }
 
+    public void reorderCardIndices(){
+        int cardIndice = 1;
+        for(Card card : this.storeCards){
+            card.setIndex(cardIndice);
+            cardIndice++;
+        }
+        for(Card card : this.hand){
+            card.setDamage(card.getOriginalDamage());
+            card.setIndex(cardIndice);
+            cardIndice++;
+        }
 
+        for(int i = 0; i < this.hand.size(); i++){
+            Card card = this.hand.get(i);
+            Card left;
+            Card right;
+            if(i == 0) left = null;
+            else left = this.hand.get(i-1);
+            if(i == this.hand.size()-1)right = null;
+            else right = this.hand.get(i+1);
+            card.triggerOnMoveEffect(left, right);
+        }
+
+    }
     public void takeDamage(int damage){this._health -= damage;}
 
-    public void triggerCardEffects(Player enemyPlayer){
+    public void triggerCardCooldownEffects(Player enemyPlayer){
         for(Card card : this.hand){
-            card.triggerEffect(this, enemyPlayer);
+            card.triggerCooldownEffect(this, enemyPlayer);
         }
     }
 
     public String draw(boolean showStats){
-        String text = "     |".concat(_name);
+        String text = "";
+        text = text.concat("     |").concat(_name);
         text = text.concat(" #").concat(Integer.toString(_rank));
         text = text.concat(" +").concat(Integer.toString(_health));
         text = text.concat("/").concat(Integer.toString(_maxHealth));
         if(showStats){
             text = text.concat(" $").concat(Integer.toString(_gold));
+            text = text.concat(" »").concat(Integer.toString(_speed));
         }
         text = text.concat("|");
         return text;

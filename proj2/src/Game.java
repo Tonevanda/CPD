@@ -220,8 +220,8 @@ public class Game extends Communication{
             Player player2 = fight.getLast();
             reconnectFight(player1, player2);
 
-            player1.triggerCardEffects(player2);
-            player2.triggerCardEffects(player1);
+            player1.triggerCardCooldownEffects(player2);
+            player2.triggerCardCooldownEffects(player1);
             drawFightState(fight);
             if(player1.getHealth() <= 0 || player2.getHealth() <= 0){
                 finishedStatePlayersCount += 2;
@@ -266,8 +266,7 @@ public class Game extends Communication{
             flush(currentPlayer.getWriter());
             return MoveType.INVALID;
         }
-        else if(userInput.equals("done"))return MoveType.ENDTURN;
-        else if(userInput.equals("r")) {
+        if(userInput.equals("r")) {
             if(currentPlayer.getGold() < 1){
                 write(currentPlayer.getWriter(), "You don't have enough gold to reroll!", '0');
                 flush(currentPlayer.getWriter());
@@ -325,6 +324,7 @@ public class Game extends Communication{
             flush(currentPlayer.getWriter());
             return MoveType.INVALID;
         }
+        if(cardIndice == 0) return MoveType.ENDTURN;
         cardIndice--;
         if(cardIndice >= maxIndice || cardIndice < 0) {
             write(currentPlayer.getWriter(), "Out of bounds card indice. Please try again!!", '0');
@@ -345,6 +345,14 @@ public class Game extends Communication{
             }
             return MoveType.BUY;
         }
+        Card card = currentPlayer.getHandCard(cardIndice-currentPlayer.getStoreCardsSize());
+        if(card.getType() == 0){
+            if(currentPlayer.getGold() < card.getGold()){
+                write(currentPlayer.getWriter(), "You don't have enough money to buy the lock!", '0');
+                flush(currentPlayer.getWriter());
+                return MoveType.INVALID;
+            }
+        }
         return MoveType.SELL;
 
     }
@@ -355,16 +363,24 @@ public class Game extends Communication{
                 int cardIndice = Integer.parseInt(userInput)-1;
                 Card card = currentPlayer.getStoreCard(cardIndice);
                 currentPlayer.addHandCard(card);
+                card.triggerOnBuyEffect(currentPlayer);
                 currentPlayer.removeStoreCard(cardIndice);
-                reorderCardIndices(currentPlayer);
+                currentPlayer.reorderCardIndices();
                 drawStoreState(currentPlayer, false);
                 write(currentPlayer.getWriter(), "", '0');
                 flush(currentPlayer.getWriter());
             }
             case SELL -> {
                 int cardIndice = Integer.parseInt(userInput)-currentPlayer.getStoreCardsSize()-1;
+                Card card = currentPlayer.getHandCard(cardIndice);
+                int goldOffset =card.getGold();
+                if(card.getType() == 0) {
+                    goldOffset = -goldOffset;
+                    currentPlayer.increaseLockCosts();
+                }
+                currentPlayer.setGold(currentPlayer.getGold()+goldOffset);
                 currentPlayer.removeHandCard(cardIndice);
-                reorderCardIndices(currentPlayer);
+                currentPlayer.reorderCardIndices();
                 drawStoreState(currentPlayer, false);
                 write(currentPlayer.getWriter(), "", '0');
                 flush(currentPlayer.getWriter());
@@ -373,7 +389,7 @@ public class Game extends Communication{
             case REROLL -> {
                 refillStore(currentPlayer);
                 currentPlayer.setGold(currentPlayer.getGold()-1);
-                reorderCardIndices(currentPlayer);
+                currentPlayer.reorderCardIndices();
                 drawStoreState(currentPlayer, false);
                 write(currentPlayer.getWriter(), "", '0');
                 flush(currentPlayer.getWriter());
@@ -383,7 +399,7 @@ public class Game extends Communication{
                 int cardIndice1 = Integer.parseInt(splitInput[0])-currentPlayer.getStoreCardsSize()-1;
                 int cardIndice2 = Integer.parseInt(splitInput[1])-currentPlayer.getStoreCardsSize()-1;
                 currentPlayer.swapCards(cardIndice1, cardIndice2);
-                reorderCardIndices(currentPlayer);
+                currentPlayer.reorderCardIndices();
                 drawStoreState(currentPlayer, false);
                 write(currentPlayer.getWriter(), "", '0');
                 flush(currentPlayer.getWriter());
@@ -414,21 +430,11 @@ public class Game extends Communication{
 
 
         }
-        reorderCardIndices(player);
+        player.reorderCardIndices();
 
     }
 
-    public void reorderCardIndices(Player currentPlayer){
-        int cardIndice = 1;
-        for(Card card : currentPlayer.getStoreCards()){
-            card.setIndex(cardIndice);
-            cardIndice++;
-        }
-        for(Card card : currentPlayer.getHandCards()){
-            card.setIndex(cardIndice);
-            cardIndice++;
-        }
-    }
+
 
 
     public void drawFightState(List<Player> fight){
@@ -438,8 +444,8 @@ public class Game extends Communication{
         String text = CLEAR_SCREEN;
         String player1info = player1.draw(true);
         String player2info = player2.draw(true);
-        String player1Cards = drawCards(player1.getHandCards(), true);
-        String player2Cards = drawCards(player2.getHandCards(), true);
+        String player1Cards = drawCards(player1.getHandCards(), true, true);
+        String player2Cards = drawCards(player2.getHandCards(), true, true);
         write(player1.getWriter(), text.concat(player2info).concat("\n").concat(player2Cards).concat(player1Cards).concat("\n").concat(" ").concat(player1info));
         write(player2.getWriter(), text.concat(player1info).concat("\n").concat(player1Cards).concat(player2Cards).concat("\n").concat(" ").concat(player2info));
         flush(player1.getWriter());
@@ -448,11 +454,13 @@ public class Game extends Communication{
     }
     public void drawStoreState(Player player, boolean hideIndex){
         String text = CLEAR_SCREEN;
+        if(!hideIndex)
+            text = text.concat(" (0)END TURN");
         for(Player p : this.players){
             text = text.concat(p.draw(false));
         }
-        text = text.concat("\n").concat(drawCards(player.getStoreCards(), hideIndex));
-        text = text.concat(drawCards(player.getHandCards(), hideIndex));
+        text = text.concat("\n").concat(drawCards(player.getStoreCards(), hideIndex, false));
+        text = text.concat(drawCards(player.getHandCards(), hideIndex, false));
         text = text.concat("\n").concat(player.draw(true));
 
         write(player.getWriter(), text);
@@ -460,7 +468,7 @@ public class Game extends Communication{
 
     }
 
-    public String drawCards(List<Card> cards, boolean hideIndex){
+    public String drawCards(List<Card> cards, boolean hideIndex, boolean hideGold){
         String text = "";
         for(int j = 0; j < CARD_HEIGHT; j++){
             if(!cards.isEmpty()) {
@@ -468,7 +476,7 @@ public class Game extends Communication{
                 if (j == 0) text = text.concat(" ");
                 else text = text.concat("|");
                 for (Card card : cards) {
-                    text = text.concat(card.draw(j, CARD_HEIGHT, hideIndex));
+                    text = text.concat(card.draw(j, CARD_HEIGHT, hideIndex, hideGold));
                 }
             }
             text = text.concat("\n");
