@@ -123,13 +123,14 @@ public class Game extends Communication{
                 case FIGHT -> {
                     System.out.print("");
                     if(timerTask.timeChanged()){
-                        fightHandler(timerTask.getTime());
+                        fightHandler();
 
                         if(this.finishedStatePlayersCount == players.size() || timerTask.getTime() > 30){
                             this.finishedStatePlayersCount = 0;
                             this.fights.clear();
                             this.state = State.STORE;
                             for(Player player : this.players){
+                                player.resetEffects();
                                 refillStore(player);
                                 drawStoreState(player, false);
                                 write(player.getWriter(), "", '0');
@@ -170,13 +171,13 @@ public class Game extends Communication{
 
     }
 
-    public void fightHandler(int time){
+    public void fightHandler(){
         for(int i = 0; i < this.fights.size(); i++){
             List<Player> fight = this.fights.get(i);
             Player player1 = fight.getFirst();
             Player player2 = fight.getLast();
-            player1.triggerCardEffects(player2, time);
-            player2.triggerCardEffects(player1, time);
+            player1.triggerCardEffects(player2);
+            player2.triggerCardEffects(player1);
             drawFightState(fight);
             if(player1.getHealth() <= 0 || player2.getHealth() <= 0){
                 finishedStatePlayersCount += 2;
@@ -196,7 +197,14 @@ public class Game extends Communication{
             return MoveType.INVALID;
         }
         else if(userInput.equals("done"))return MoveType.ENDTURN;
-        else if(userInput.equals("r")) return MoveType.REROLL;
+        else if(userInput.equals("r")) {
+            if(currentPlayer.getGold() < 1){
+                write(currentPlayer.getWriter(), "You don't have enough gold to reroll!", '0');
+                flush(currentPlayer.getWriter());
+                return MoveType.INVALID;
+            }
+            return MoveType.REROLL;
+        }
         else if(userInput.contains("-")){
             String[] splittedInput = userInput.split("-");
             if(splittedInput.length > 2){
@@ -358,12 +366,12 @@ public class Game extends Communication{
         Player player2 = fight.getLast();
 
         String text = CLEAR_SCREEN;
-        String player1info = player1.draw();
-        String player2info = player2.draw();
+        String player1info = player1.draw(true);
+        String player2info = player2.draw(true);
         String player1Cards = drawCards(player1.getHandCards(), true);
         String player2Cards = drawCards(player2.getHandCards(), true);
-        write(player1.getWriter(), text.concat(player2info).concat("\n").concat(player2Cards).concat(player1Cards).concat(" ").concat(player1info));
-        write(player2.getWriter(), text.concat(player1info).concat("\n").concat(player1Cards).concat(player2Cards).concat(" ").concat(player2info));
+        write(player1.getWriter(), text.concat(player2info).concat("\n").concat(player2Cards).concat(player1Cards).concat("\n").concat(" ").concat(player1info));
+        write(player2.getWriter(), text.concat(player1info).concat("\n").concat(player1Cards).concat(player2Cards).concat("\n").concat(" ").concat(player2info));
         flush(player1.getWriter());
         flush(player2.getWriter());
 
@@ -371,10 +379,11 @@ public class Game extends Communication{
     public void drawStoreState(Player player, boolean hideIndex){
         String text = CLEAR_SCREEN;
         for(Player p : this.players){
-            text = text.concat(p.draw());
+            text = text.concat(p.draw(false));
         }
         text = text.concat("\n").concat(drawCards(player.getStoreCards(), hideIndex));
         text = text.concat(drawCards(player.getHandCards(), hideIndex));
+        text = text.concat("\n").concat(player.draw(true));
 
         write(player.getWriter(), text);
         flush(player.getWriter());

@@ -58,8 +58,8 @@ public class Player{
     }
 
     public void resetPlayerGameInfo(){
-        this._health = 100;
-        this._maxHealth = 100;
+        this._health = 300;
+        this._maxHealth = 300;
         this._gold = 5;
         this.hand.clear();
         this.storeCards.clear();
@@ -138,6 +138,14 @@ public class Player{
 
 
     public void resetStoreCards(){this.storeCards.clear();}
+
+    public void resetEffects(){
+        _health = Math.min(_health+50, _maxHealth);
+        _gold += 3;
+        for(Card card : this.hand){
+            card.resetStats();
+        }
+    }
     public void addStoreCard(Card card){this.storeCards.add(card);}
 
     public void removeStoreCard(int cardIndice){
@@ -153,6 +161,7 @@ public class Player{
     public void addHandCard(Card card){
         this.hand.add(new Card(card.getType()));
         this._handWidth += card.getWidth();
+        this._gold -= card.getGold();
     }
 
     public void swapCards(int cardIndice1, int cardIndice2){
@@ -165,47 +174,25 @@ public class Player{
 
     public void takeDamage(int damage){this._health -= damage;}
 
-    public void triggerCardEffects(Player enemyPlayer, int time){
+    public void triggerCardEffects(Player enemyPlayer){
         for(Card card : this.hand){
-            card.triggerEffect(this, enemyPlayer, time);
+            card.triggerEffect(this, enemyPlayer);
         }
     }
 
-    public String draw(){
+    public String draw(boolean showStats){
         String text = "     |".concat(_name);
-        text = text.concat(" ").concat(Integer.toString(_health)).concat("H #");
-        text = text.concat(Integer.toString(_rank)).concat("|");
+        text = text.concat(" #").concat(Integer.toString(_rank));
+        text = text.concat(" +").concat(Integer.toString(_health));
+        if(showStats){
+            text = text.concat("/").concat(Integer.toString(_maxHealth));
+            text = text.concat(" $").concat(Integer.toString(_gold));
+        }
+        text = text.concat("|");
         return text;
     }
 
-
-
-    /*public void drawCardsAction(int quantity){
-        for(int i = 0; i < quantity; i++){
-            if(this.deck.isEmpty()) reshuffleDeck();
-            this.hand.add(this.deck.getFirst());
-            this.deck.removeFirst();
-        }
-    }
-
-    public void reshuffleDeck(){
-        this.deck = this._discardPile;
-        Collections.shuffle(this.deck);
-        this._discardPile = new ArrayList<>();
-    }
-
-
-    public void discardCard(Card card){
-        this._discardPile.add(card);
-    }
-
-    public void playCard(int cardNumber){
-
-        this.hand.remove(cardNumber);
-
-        if(this.hand.isEmpty()) drawCardsAction(this._maxHandSize);
-
-    }
+    /*
 
     public boolean hasLost(Card boardCard){
         for(Card card : this.hand){

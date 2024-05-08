@@ -31,6 +31,8 @@ public class Card {
 
     private int _gold = 5;
 
+    private int _originalCooldown = 5;
+
     private int _cooldown = 5;
 
     private int _index = 0;
@@ -90,7 +92,12 @@ public class Card {
 
         fillArt(ascii);
         fillDescription(power);
+        this._originalCooldown = _cooldown;
 
+    }
+
+    public void resetStats(){
+        this._cooldown = this._originalCooldown;
     }
 
     public void fillDescription(String power){
@@ -129,8 +136,9 @@ public class Card {
 
 
 
-    public void triggerEffect(Player friendlyPlayer, Player enemyPlayer, int time){
-        if(time % this._cooldown == 0) {
+    public void triggerEffect(Player friendlyPlayer, Player enemyPlayer){
+        this._cooldown--;
+        if(this._cooldown == 0) {
             switch (this._type) {
                 case SWORD -> {
                     enemyPlayer.takeDamage(3);
@@ -139,6 +147,7 @@ public class Card {
                     enemyPlayer.takeDamage(50);
                 }
             }
+            this._cooldown = this._originalCooldown;
         }
     }
 
