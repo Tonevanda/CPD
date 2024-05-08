@@ -23,6 +23,7 @@ public class Player{
     private List<Card> hand = new ArrayList<>();
     private List<Card> storeCards = new ArrayList<>();
 
+
     private int _handWidth = 1;
 
 
@@ -40,6 +41,10 @@ public class Player{
     private int _originalStrength = 0;
 
     private int _strength = 0;
+
+    private int _originalArmor = 0;
+
+    private int _armor = 0;
 
     private boolean _inGame = false;
 
@@ -72,6 +77,8 @@ public class Player{
         this._originalSpeed = 0;
         this._strength = 0;
         this._originalStrength = 0;
+        this._originalArmor = 0;
+        this._armor = 0;
         this._handWidth = 1;
         this.hand.clear();
         for(int i = 0; i < 4; i++){
@@ -128,6 +135,12 @@ public class Player{
 
     public int getOriginalStrength(){return this._originalStrength;}
     public int getHealth(){return this._health;}
+
+    public int getMaxHealth(){return this._maxHealth;}
+
+    public int getArmor(){return this._armor;}
+
+    public int getOriginalArmor(){return this._originalArmor;}
 
 
     public int getHandCardsCount() { return this.hand.size(); }
@@ -191,21 +204,37 @@ public class Player{
 
     public void setHealth(int health){this._health = Math.min(health, this._maxHealth);}
 
+    public void setMaxHealth(int health){
+        this._maxHealth = Math.max(1, health);
+        setHealth(Math.min(this._health, this._maxHealth));
+
+    }
+
+    public void setArmor(int armor){this._armor = armor;}
+
+    public void setOriginalArmor(int armor){
+        setArmor(this._armor + armor - this._originalArmor);
+        this._originalArmor = armor;
+    }
+
     public void closeTimer(){this._timer.cancel();}
 
 
     public void resetStoreCards(){this.storeCards.clear();}
 
     public void resetEffects(){
-        _health = Math.min(_health+50, _maxHealth);
         _gold += 3;
         this._speed = this._originalSpeed;
         this._strength = this._originalStrength;
+        this._armor = this._originalArmor;
         for(Card card : this.hand){
             card.resetStats();
         }
+
     }
     public void addStoreCard(Card card){this.storeCards.add(card);}
+
+
 
     public void removeStoreCard(int cardIndice){
         this.storeCards.remove(cardIndice);
@@ -261,10 +290,19 @@ public class Player{
         }
 
     }
-    public void takeDamage(int damage){this._health -= damage;}
+    public void takeDamage(int damage){
+        if(this._armor > 0){
+            this._armor = Math.max(0, this._armor - damage);
+        }
+        else{
+            this._health -= damage;
+        }
+    }
 
     public void triggerCardCooldownEffects(Player enemyPlayer){
-        for(Card card : this.hand){
+        for(int i = 0; i < this.hand.size(); i++){
+            Card card = this.hand.get(i);
+
             card.triggerCooldownEffect(this, enemyPlayer);
         }
     }
@@ -274,6 +312,7 @@ public class Player{
         text = text.concat("     |").concat(_name);
         text = text.concat(" #").concat(Integer.toString(_rank));
         text = text.concat(" +").concat(Integer.toString(_health));
+        if(showStats) text = text.concat("[").concat(Integer.toString(_armor)).concat("]");
         text = text.concat("/").concat(Integer.toString(_maxHealth));
         if(showStats){
             text = text.concat(" $").concat(Integer.toString(_gold));

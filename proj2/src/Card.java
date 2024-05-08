@@ -23,7 +23,12 @@ public class Card {
         CASTLE,
         COIN,
         BANDAID,
-        BOOTS
+        BOOTS,
+        SHOVEL,
+        FENCE,
+        TEDDY,
+        SCROLL,
+        CAT
 
 
 
@@ -48,6 +53,11 @@ public class Card {
     private int _originalDamage = 0;
 
     private int _damage = 0;
+
+
+    private int _originalArmor = 0;
+    private int _armor = 0;
+
 
     private boolean _isInstant = false;
 
@@ -137,7 +147,7 @@ public class Card {
                                  |/         \\\\""";
                 this._width = 29;
                 this._gold = 1;
-                power = "Adjacent cards get +6 Damage";
+                power = "Adjacent: +6 Damage";
             }
             case AXE -> {
                 ascii = """
@@ -156,7 +166,7 @@ public class Card {
                 this._gold = 1;
                 this._cooldown = 12;
                 this._damage = 8;
-                power = "8 Damage. Bought: +2» permanently";
+                power = "8 Damage. Bought: 2 Speed";
             }
             case WEIGHTS -> {
                 ascii = """
@@ -175,7 +185,7 @@ public class Card {
                 this._width = 31;
                 this._gold = 3;
                 this._cooldown = 9;
-                power = "+3§ for this fight";
+                power = "3 Strength";
             }
             case CASTLE -> {
                 ascii = """
@@ -195,7 +205,7 @@ public class Card {
                 this._width = 41;
                 this._gold = 4;
                 this._cooldown = 9;
-                power = "+2§, heal 15. Bought: +1§";
+                power = "2 Strength, heal 15. Bought: 1 Strength";
             }
             case COIN -> {
                 ascii = """
@@ -248,7 +258,108 @@ public class Card {
                          \n \n""";
                 this._width = 30;
                 this._gold = 1;
-                power = "+20»";
+                power = "20 Speed";
+            }
+            case SHOVEL -> {
+                ascii = """
+                                      ____\s
+                                     / -- )
+                                    (____/
+                                    / /
+                                   / /
+                                  / /
+                                 / /
+                                / /
+                           ____/ /___
+                          / .------  )
+                         / /        /
+                        / /        /""";
+                this._width = 20;
+                this._gold = 2;
+                this._cooldown = 4;
+                this._damage = 1;
+                power = "1 Damage";
+            }
+            case FENCE -> {
+                ascii = """
+                                   ____              \s
+                                __/ \\--\\           \s
+                                U |_|__|             \s
+                                     ||              \s
+                                     ||              \s
+                         ,   ,   ,   ,|  ,   ,   ,   ,
+                        ||  ||  ||  ||| ||  ||  ||  ||
+                        ||__||__||__|||_||__||__||__||
+                        ..--..--..--..--..--..--..--..
+                        ||__||__||__|||_||__||__||__||
+                        ..--..--..--..--..--..--..--..
+                        ||  ||  ||  ||| ||  ||  ||  ||
+                        //\\\\//\\||/|\\/\\||\\\\|//\\|\\|//\\|/""";
+                this._width = 31;
+                this._gold = 1;
+                this._cooldown = 10;
+                this._armor = 10;
+                power = "10 Armor. Bought: 10 Armor";
+            }
+            case TEDDY -> {
+                ascii = """
+                              ,-._____,-.
+                             (_c       c_)
+                              /  e-o-e  \\
+                             (  (._|_,)  )
+                              >._`---'_,<
+                            ,'/  `---'  \\`.
+                          ,' /           \\ `.
+                         (  (             )  )
+                          `-'\\           /`-'
+                             |`-._____.-'|
+                             |     Y     |
+                             /     |     \\
+                            (______|______)""";
+                this._width = 22;
+                this._gold = 4;
+                this._cooldown = 9;
+                this._armor = 1;
+                power = "1 Armor. +1 Armor per ability triggered";
+            }
+            case SCROLL -> {
+                ascii = """
+                             _______________
+                        ()==(              (@==()
+                             '______________'|
+                               |             |
+                               |             |
+                               |             |
+                               |             |
+                               |             |
+                               |             |
+                               |             |
+                             __)_____________|
+                        ()==(               (@==()
+                             '--------------'""";
+                this._width = 27;
+                this._isInstant = true;
+                power = "Bought: -42 Max Health and +3 Strength";
+            }
+            case CAT -> {
+                ascii = """
+                                   ___
+                                  (___)
+                           ____
+                         _\\___ \\  |\\_/|
+                        \\     \\ \\/ , , \\ ___
+                         \\__   \\ \\ ="= //|||\\
+                          |===  \\/____)_)||||
+                          \\______|    | |||||
+                              _/_|  | | =====
+                             (_/  \\_)_)    
+                          _____________,___
+                         (    '  '        _)
+                          (________________)""";
+                this._width = 22;
+                this._gold = 1;
+                this._isInstant = true;
+                power = "Bought: +10 MaxHealth and Heal 40";
             }
         }
 
@@ -256,11 +367,15 @@ public class Card {
         fillDescription(power);
         this._originalCooldown = _cooldown;
         this._originalDamage = _damage;
+        this._originalArmor = _armor;
 
     }
 
     public void resetStats(){
-        this._cooldown = this._originalCooldown;
+        setCooldown(this._originalCooldown);
+        setDamage(this._originalDamage);
+
+        setArmor(this._originalArmor);
     }
 
     public void fillDescription(String power){
@@ -305,6 +420,8 @@ public class Card {
 
     public int getOrignalCooldown(){return this._originalCooldown;}
 
+    public int getCooldown(){return this._cooldown;}
+
     public int getOriginalDamage(){return this._originalDamage;}
 
     public boolean isInstant(){return this._isInstant;}
@@ -318,13 +435,23 @@ public class Card {
     public void setDamage(int damage){
         this._damage = damage;
         switch(this._type){
-            case SWORD, ANTEATER -> {
+            case SWORD, ANTEATER, SHOVEL -> {
                 this._description.clear();
                 fillDescription(Integer.toString(this._damage).concat(" Damage"));
             }
             case AXE -> {
                 this._description.clear();
-                fillDescription(Integer.toString(this._damage).concat(" Damage. Bought: +2» permanently"));
+                fillDescription(Integer.toString(this._damage).concat(" Damage. Bought: 2 Speed"));
+            }
+        }
+    }
+
+    public void setArmor(int armor){
+        this._armor = armor;
+        switch(this._type){
+            case TEDDY -> {
+                this._description.clear();
+                fillDescription(Integer.toString(this._armor).concat(" Armor. +1 Armor per ability triggered"));
             }
         }
     }
@@ -333,7 +460,7 @@ public class Card {
         this._cooldown--;
         if(this._cooldown <= 0) {
             switch (this._type) {
-                case SWORD, ANTEATER, AXE -> {
+                case SWORD, ANTEATER, AXE, SHOVEL -> {
                     enemyPlayer.takeDamage(this._damage);
                 }
                 case WEIGHTS -> {
@@ -342,6 +469,15 @@ public class Card {
                 case CASTLE -> {
                     friendlyPlayer.setStrength(friendlyPlayer.getStrength()+2);
                     friendlyPlayer.setHealth(friendlyPlayer.getHealth()+15);
+                }
+                case FENCE, TEDDY -> {
+                    friendlyPlayer.setArmor(friendlyPlayer.getArmor()+this._armor);
+                }
+            }
+            if(this._originalCooldown > 0) {
+                for (int i = 0; i < friendlyPlayer.getHandCardsCount(); i++) {
+                    Card card = friendlyPlayer.getHandCard(i);
+                    card.triggerAfterItemTriggersEffect();
                 }
             }
             this._cooldown = this._originalCooldown-friendlyPlayer.getSpeed()*this._originalCooldown/100;
@@ -376,6 +512,17 @@ public class Card {
             case BOOTS -> {
                 friendlyPlayer.setOriginalSpeed(friendlyPlayer.getOriginalSpeed()+20);
             }
+            case FENCE -> {
+                friendlyPlayer.setOriginalArmor(friendlyPlayer.getArmor()+this._armor);
+            }
+            case SCROLL -> {
+                friendlyPlayer.setMaxHealth(friendlyPlayer.getMaxHealth()-42);
+                friendlyPlayer.setOriginalStrength(friendlyPlayer.getOriginalStrength()+3);
+            }
+            case CAT -> {
+                friendlyPlayer.setMaxHealth(friendlyPlayer.getMaxHealth() + 10);
+                friendlyPlayer.setHealth(friendlyPlayer.getHealth()+40);
+            }
         }
     }
 
@@ -386,6 +533,15 @@ public class Card {
             }
         }
     }
+
+    public void triggerAfterItemTriggersEffect(){
+        switch(this._type){
+            case TEDDY -> {
+                setArmor(this._armor+1);
+            }
+        }
+    }
+
 
 
 

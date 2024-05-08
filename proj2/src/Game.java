@@ -233,7 +233,7 @@ public class Game extends Communication{
                     leaveGame(player1);
                 }
                 else if(player1.getHealth() <= 0) leaveGame(player1);
-                else if(player2.getHealth() <= 0)leaveGame(player2);
+                if(player2.getHealth() <= 0)leaveGame(player2);
 
 
             }
