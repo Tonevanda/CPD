@@ -18,7 +18,12 @@ public class Card {
         SWORD,
         ANTEATER,
         SHIELD,
-        AXE
+        AXE,
+        WEIGHTS,
+        CASTLE,
+        COIN,
+        BANDAID,
+        BOOTS
 
 
 
@@ -43,6 +48,8 @@ public class Card {
     private int _originalDamage = 0;
 
     private int _damage = 0;
+
+    private boolean _isInstant = false;
 
 
 
@@ -130,7 +137,6 @@ public class Card {
                                  |/         \\\\""";
                 this._width = 29;
                 this._gold = 1;
-                this._damage = 6;
                 power = "Adjacent cards get +6 Damage";
             }
             case AXE -> {
@@ -151,6 +157,97 @@ public class Card {
                 this._cooldown = 12;
                 this._damage = 8;
                 power = "8 Damage. Bought: +2» permanently";
+            }
+            case WEIGHTS -> {
+                ascii = """
+                            _                    _
+                          _| |                  | |_
+                         | | |__________________| | |
+                        [| | |------------------| | |]
+                         |_| |                  | |_|
+                           |_|                  |_|
+                            _                    _
+                          _| |                  | |_
+                         | | |__________________| | |
+                        [| | |------------------| | |]
+                         |_| |                  | |_|
+                           |_|                  |_|""";
+                this._width = 31;
+                this._gold = 3;
+                this._cooldown = 9;
+                power = "+3§ for this fight";
+            }
+            case CASTLE -> {
+                ascii = """
+                             |>>>                        |>>>
+                         _  _|_  _                   _  _|_  _
+                        | |_| |_| |                 | |_| |_| |
+                        \\  .      /                 \\ .    .  /
+                         \\    ,  /                   \\    .  /
+                          | .   |_   _   _   _   _   _| ,   |
+                          |    .| |_| |_| |_| |_| |_| |  .  |
+                          | ,   | .    .     .      . |    .|
+                          | .   |.   ,  _______   .   |   , |
+                          |     |  .   /+++++++\\    . | .   |
+                          |.    | .    |+++++++| .    |   . |
+                          |   . |   ,  |+++++++|.  . _|__   |
+                          '--~~__ .    |++++ __|----~    ~`--  \s""";
+                this._width = 41;
+                this._gold = 4;
+                this._cooldown = 9;
+                power = "+2§, heal 15. Bought: +1§";
+            }
+            case COIN -> {
+                ascii = """
+                               _.-'~~`~~'-._
+                             .'`  B   E   R  `'.
+                            / I               T \\
+                          /`       .-'~"-.       `\\
+                         ; L      / `-    \\      Y ;
+                        ;        />  `.  -.|        ;
+                        |       /_     '-.__)       |
+                        |        |-  _.' \\ |        |
+                        ;        `~~;     \\\\        ;
+                         ;          /      \\\\)     ;
+                          \\        '.___.-'`"     /
+                           `\\                   /`
+                             '._   1 9 9 7   _.'
+                                `'-..,,,..-'`""";
+
+                this._width = 30;
+                this._gold = 2;
+                this._isInstant = true;
+                power = "Bought: +3$";
+            }
+            case BANDAID -> {
+                ascii = """ 
+                         \n \n \n \n
+                          /==========================\\
+                         / : : : : : |::::| : : : : : \\
+                        { : : : : : :|::::|: : : : : : }
+                         \\ : : : : : |::::| : : : : : /
+                          \\==========================/
+                         \n""";
+
+                this._width = 33;
+                this._gold = 1;
+                this._isInstant = true;
+                power = "Bought: Heal 100";
+            }
+            case BOOTS -> {
+                ascii = """
+                                      _    _
+                                     (_\\__/(,_
+                                     | \\ `_////-._
+                         _    _      L_/__ "=> __/`\\
+                        (_\\__/(,_    |=====;__/___./
+                        | \\ `_////-._'-'-'-""\"""\"`
+                        J_/___"=> __/`\\
+                        |=====;__/___./
+                        '-'-'-""\"""\""`""";
+                this._width = 40;
+                this._gold = 1;
+                power = "+20»";
             }
         }
 
@@ -205,7 +302,16 @@ public class Card {
 
     public int getDamage(){return this._damage;}
 
+    public int getOrignalCooldown(){return this._originalCooldown;}
+
     public int getOriginalDamage(){return this._originalDamage;}
+
+    public boolean isInstant(){return this._isInstant;}
+
+    public void setCooldown(int cooldown){
+        this._cooldown = cooldown;
+        if(this._originalCooldown > 0) this._cooldown = Math.max(this._cooldown, 1);
+    }
 
 
     public void setDamage(int damage){
@@ -223,22 +329,29 @@ public class Card {
     }
 
     public void triggerCooldownEffect(Player friendlyPlayer, Player enemyPlayer){
-        this._cooldown -= 1 + friendlyPlayer.getSpeed()*this._originalCooldown/100;
+        this._cooldown--;
         if(this._cooldown <= 0) {
             switch (this._type) {
                 case SWORD, ANTEATER, AXE -> {
                     enemyPlayer.takeDamage(this._damage);
                 }
+                case WEIGHTS -> {
+                    friendlyPlayer.setStrength(friendlyPlayer.getStrength()+3);
+                }
+                case CASTLE -> {
+                    friendlyPlayer.setStrength(friendlyPlayer.getStrength()+2);
+                    friendlyPlayer.setHealth(friendlyPlayer.getHealth()+15);
+                }
             }
-            this._cooldown = this._originalCooldown;
+            this._cooldown = this._originalCooldown-friendlyPlayer.getSpeed()*this._originalCooldown/100;
         }
     }
 
     public void triggerOnMoveEffect(Card left, Card right){
         switch(this._type){
             case SHIELD -> {
-                if(left != null && left.getOriginalDamage() != 0)left.setDamage(left.getDamage()+this._damage);
-                if(right != null && right.getOriginalDamage() != 0)right.setDamage(right.getDamage()+this._damage);
+                if(left != null && left.getOriginalDamage() != 0)left.setDamage(left.getDamage()+6);
+                if(right != null && right.getOriginalDamage() != 0)right.setDamage(right.getDamage()+6);
             }
         }
     }
@@ -247,6 +360,15 @@ public class Card {
         switch(this._type){
             case AXE -> {
                 friendlyPlayer.setSpeed(friendlyPlayer.getSpeed()+2);
+            }
+            case CASTLE -> {
+                friendlyPlayer.setOriginalStrength(friendlyPlayer.getOriginalStrength()+1);
+            }
+            case COIN -> {
+                friendlyPlayer.setGold(friendlyPlayer.getGold()+3);
+            }
+            case BANDAID -> {
+                friendlyPlayer.setHealth(friendlyPlayer.getHealth()+100);
             }
         }
     }

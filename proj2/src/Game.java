@@ -46,7 +46,7 @@ public class Game extends Communication{
 
     private final int STORE_TIMEOUT = 120;
 
-    private final int FIGHT_TIMEOUT = 30;
+    private int FIGHT_TIMEOUT = 30;
 
     private final int MAX_WIDTH = 156;
 
@@ -135,9 +135,11 @@ public class Game extends Communication{
                         fightHandler();
 
                         if(this.finishedStatePlayersCount >= players.size() || timerTask.getTime() > FIGHT_TIMEOUT){
+                            FIGHT_TIMEOUT++;
                             this.finishedStatePlayersCount = 0;
                             this.fights.clear();
                             this.state = State.STORE;
+                            this.players.sort((p1, p2) -> (p2.getHealth() - p1.getHealth()));
                             for(Player player : this.players){
                                 player.resetEffects();
                                 refillStore(player);
@@ -145,7 +147,6 @@ public class Game extends Communication{
                                 write(player.getWriter(), "", '0');
                                 flush(player.getWriter());
                             }
-                            this.players.sort((p1, p2) -> (p2.getHealth() - p1.getHealth()));
                             timerTask.setTimer(0);
                             timerTask.resetTimer();
                             if(this.players.size() == 1) state = State.END;
@@ -338,7 +339,7 @@ public class Game extends Communication{
                 flush(currentPlayer.getWriter());
                 return MoveType.INVALID;
             }
-            else if(currentPlayer.getHandWidth()+card.getWidth() > MAX_WIDTH){
+            else if(currentPlayer.getHandWidth()+card.getWidth() > MAX_WIDTH && !card.isInstant()){
                 write(currentPlayer.getWriter(), "You don't have space for this card!", '0');
                 flush(currentPlayer.getWriter());
                 return MoveType.INVALID;
@@ -362,7 +363,8 @@ public class Game extends Communication{
             case BUY ->{
                 int cardIndice = Integer.parseInt(userInput)-1;
                 Card card = currentPlayer.getStoreCard(cardIndice);
-                currentPlayer.addHandCard(card);
+                if(!card.isInstant())currentPlayer.addHandCard(card);
+                currentPlayer.setGold(currentPlayer.getGold()-card.getGold());
                 card.triggerOnBuyEffect(currentPlayer);
                 currentPlayer.removeStoreCard(cardIndice);
                 currentPlayer.reorderCardIndices();
@@ -373,9 +375,9 @@ public class Game extends Communication{
             case SELL -> {
                 int cardIndice = Integer.parseInt(userInput)-currentPlayer.getStoreCardsSize()-1;
                 Card card = currentPlayer.getHandCard(cardIndice);
-                int goldOffset =card.getGold();
+                int goldOffset = 1;
                 if(card.getType() == 0) {
-                    goldOffset = -goldOffset;
+                    goldOffset = -card.getGold();
                     currentPlayer.increaseLockCosts();
                 }
                 currentPlayer.setGold(currentPlayer.getGold()+goldOffset);
@@ -446,8 +448,9 @@ public class Game extends Communication{
         String player2info = player2.draw(true);
         String player1Cards = drawCards(player1.getHandCards(), true, true);
         String player2Cards = drawCards(player2.getHandCards(), true, true);
-        write(player1.getWriter(), text.concat(player2info).concat("\n").concat(player2Cards).concat(player1Cards).concat("\n").concat(" ").concat(player1info));
-        write(player2.getWriter(), text.concat(player1info).concat("\n").concat(player1Cards).concat(player2Cards).concat("\n").concat(" ").concat(player2info));
+        String timer = Integer.toString(FIGHT_TIMEOUT-timerTask.getTime()).concat("s");
+        write(player1.getWriter(), text.concat(player2info).concat("         ").concat(timer).concat("\n").concat(player2Cards).concat(player1Cards).concat("\n").concat(" ").concat(player1info));
+        write(player2.getWriter(), text.concat(player1info).concat("         ").concat(timer).concat("\n").concat(player1Cards).concat(player2Cards).concat("\n").concat(" ").concat(player2info));
         flush(player1.getWriter());
         flush(player2.getWriter());
 

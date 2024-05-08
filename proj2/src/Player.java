@@ -1,7 +1,6 @@
 import java.io.BufferedReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Timer;
 
@@ -36,6 +35,10 @@ public class Player{
 
     private int _speed = 0;
 
+    private int _originalStrength = 0;
+
+    private int _strength = 0;
+
     private boolean _inGame = false;
 
     public Player(String name, int rank, PrintWriter writer, BufferedReader reader, int timerInterval, int connectionCheckInterval, int connectionTimeout, int disconnectionTimeout){
@@ -64,6 +67,8 @@ public class Player{
         this._maxHealth = 300;
         this._gold = 5;
         this._speed = 0;
+        this._strength = 0;
+        this._originalStrength = 0;
         this._handWidth = 1;
         this.hand.clear();
         for(int i = 0; i < 4; i++){
@@ -113,6 +118,10 @@ public class Player{
     public int getGold(){return this._gold;}
 
     public int getSpeed(){return this._speed;}
+
+    public int getStrength(){return this._strength;}
+
+    public int getOriginalStrength(){return this._originalStrength;}
     public int getHealth(){return this._health;}
 
 
@@ -146,7 +155,30 @@ public class Player{
 
     public void setGold(int gold){this._gold = gold;}
 
-    public void setSpeed(int speed){this._speed = speed;}
+    public void setSpeed(int speed){
+        this._speed = Math.min(speed, 100);
+        for(Card card : this.hand){
+            int cooldown = card.getOrignalCooldown();
+            if(cooldown > 0){
+                card.setCooldown(cooldown - this._speed*cooldown/100);
+            }
+        }
+    }
+
+    public void setStrength(int strength){
+        for(Card card : this.hand){
+            card.setDamage(card.getDamage() + strength-this._strength);
+        }
+        this._strength = strength;
+
+    }
+
+    public void setOriginalStrength(int strength){
+        setStrength(this._strength + strength - this._originalStrength);
+        this._originalStrength = strength;
+    }
+
+    public void setHealth(int health){this._health = Math.min(health, this._maxHealth);}
 
     public void closeTimer(){this._timer.cancel();}
 
@@ -156,6 +188,7 @@ public class Player{
     public void resetEffects(){
         _health = Math.min(_health+50, _maxHealth);
         _gold += 3;
+        this._strength = this._originalStrength;
         for(Card card : this.hand){
             card.resetStats();
         }
@@ -182,7 +215,6 @@ public class Player{
     public void addHandCard(Card card){
         this.hand.add(new Card(card.getType()));
         this._handWidth += card.getWidth();
-        this._gold -= card.getGold();
     }
 
     public void swapCards(int cardIndice1, int cardIndice2){
@@ -199,7 +231,7 @@ public class Player{
             cardIndice++;
         }
         for(Card card : this.hand){
-            card.setDamage(card.getOriginalDamage());
+            card.setDamage(card.getOriginalDamage()+this._originalStrength);
             card.setIndex(cardIndice);
             cardIndice++;
         }
@@ -233,6 +265,7 @@ public class Player{
         if(showStats){
             text = text.concat(" $").concat(Integer.toString(_gold));
             text = text.concat(" »").concat(Integer.toString(_speed));
+            text = text.concat(" §").concat(Integer.toString(_strength));
         }
         text = text.concat("|");
         return text;
