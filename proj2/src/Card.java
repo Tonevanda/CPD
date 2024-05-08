@@ -146,7 +146,7 @@ public class Card {
 
 
 
-    public String draw(int row, int height){
+    public String draw(int row, int height, boolean hideIndex){
         String cooldown = Integer.toString(this._cooldown);
         String gold = Integer.toString(this._gold);
         String index = Integer.toString(this._index);
@@ -162,8 +162,8 @@ public class Card {
         else{
 
             if(row == 1){
-                text = text.concat(gold).concat("$ ").concat(cooldown).concat("s (").concat(index).concat(")");
-                startingIndex += gold.length()+cooldown.length()+index.length()+6;
+                text = text.concat(gold).concat("$ ").concat(cooldown).concat("s");
+                startingIndex += gold.length()+cooldown.length()+3;
 
             }
             else if(row-2 <this._art.size()){
@@ -176,6 +176,10 @@ public class Card {
             }
 
             for (int i = startingIndex; i < this._width; i++) {
+                if(row == 1 && i == this._width-2-index.length() && !hideIndex){
+                    text = text.concat("(").concat(index).concat(")");
+                    break;
+                }
                 if(row == height - 1) text = text.concat("_");
                 else text = text.concat(" ");
             }

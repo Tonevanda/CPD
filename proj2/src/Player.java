@@ -27,7 +27,10 @@ public class Player{
     private int _handWidth = 1;
 
 
-    private int _health = 150;
+    private int _maxHealth = 300;
+
+
+    private int _health = 300;
 
     private int _gold = 5;
 
@@ -55,7 +58,8 @@ public class Player{
     }
 
     public void resetPlayerGameInfo(){
-        this._health = 150;
+        this._health = 100;
+        this._maxHealth = 100;
         this._gold = 5;
         this.hand.clear();
         this.storeCards.clear();
@@ -128,6 +132,8 @@ public class Player{
         this.getTimerTask().setWriter(writer);
     }
 
+    public void setGold(int gold){this._gold = gold;}
+
     public void closeTimer(){this._timer.cancel();}
 
 
@@ -138,9 +144,22 @@ public class Player{
         this.storeCards.remove(cardIndice);
     }
 
+    public void removeHandCard(int cardIndice){
+        this._gold += this.hand.get(cardIndice).getGold();
+        this._handWidth -= this.hand.get(cardIndice).getWidth();
+        this.hand.remove(cardIndice);
+    }
+
     public void addHandCard(Card card){
         this.hand.add(new Card(card.getType()));
         this._handWidth += card.getWidth();
+    }
+
+    public void swapCards(int cardIndice1, int cardIndice2){
+
+        Card card1 = this.hand.get(cardIndice1);
+        this.hand.set(cardIndice1, this.hand.get(cardIndice2));
+        this.hand.set(cardIndice2, card1);
     }
 
 
@@ -150,6 +169,13 @@ public class Player{
         for(Card card : this.hand){
             card.triggerEffect(this, enemyPlayer, time);
         }
+    }
+
+    public String draw(){
+        String text = "     |".concat(_name);
+        text = text.concat(" ").concat(Integer.toString(_health)).concat("H #");
+        text = text.concat(Integer.toString(_rank)).concat("|");
+        return text;
     }
 
 

@@ -80,9 +80,11 @@ public class Game extends Communication{
     public void run() throws IOException {
         System.out.println("Game started");
 
+        this.players.sort((p1, p2)-> (p2.getHealth() - p1.getHealth()));
+
         for(Player player : this.players) {
             refillStore(player);
-            drawStoreState(player);
+            drawStoreState(player, false);
             write(player.getWriter(), "", '0');
             flush(player.getWriter());
         }
@@ -119,20 +121,23 @@ public class Game extends Communication{
                     }
                 }
                 case FIGHT -> {
+                    System.out.print("");
                     if(timerTask.timeChanged()){
                         fightHandler(timerTask.getTime());
 
                         if(this.finishedStatePlayersCount == players.size() || timerTask.getTime() > 30){
                             this.finishedStatePlayersCount = 0;
+                            this.fights.clear();
                             this.state = State.STORE;
-                            timerTask.setTimer(0);
-                            timerTask.resetTimer();
                             for(Player player : this.players){
                                 refillStore(player);
-                                drawStoreState(player);
+                                drawStoreState(player, false);
                                 write(player.getWriter(), "", '0');
                                 flush(player.getWriter());
                             }
+                            this.players.sort((p1, p2)-> (p2.getHealth() - p1.getHealth()));
+                            timerTask.setTimer(0);
+                            timerTask.resetTimer();
                         }
                     }
 
@@ -157,7 +162,7 @@ public class Game extends Communication{
     }
 
     public void storeHandler(Player currentPlayer, String userInput){
-
+        userInput = userInput.toLowerCase();
         MoveType moveType = getMoveType(currentPlayer, userInput);
         makeMove(currentPlayer, moveType, userInput);
 
@@ -177,18 +182,63 @@ public class Game extends Communication{
                 finishedStatePlayersCount += 2;
                 this.fights.remove(i);
                 i--;
+
             }
         }
 
     }
 
     public MoveType getMoveType(Player currentPlayer, String userInput){
+        int maxIndice = currentPlayer.getStoreCardsSize() + currentPlayer.getHandCardsCount();
         if(userInput.length() > 5) {
             write(currentPlayer.getWriter(), "Please insert a valid input!", '0');
             flush(currentPlayer.getWriter());
             return MoveType.INVALID;
         }
-        if(userInput.equals("done"))return MoveType.ENDTURN;
+        else if(userInput.equals("done"))return MoveType.ENDTURN;
+        else if(userInput.equals("r")) return MoveType.REROLL;
+        else if(userInput.contains("-")){
+            String[] splittedInput = userInput.split("-");
+            if(splittedInput.length > 2){
+                write(currentPlayer.getWriter(), "Your swapping contains too many \"-\"!", '0');
+                flush(currentPlayer.getWriter());
+                return MoveType.INVALID;
+            }
+            int cardIndice1;
+            int cardIndice2;
+            try{
+                cardIndice1 = Integer.parseInt(splittedInput[0]);
+            }catch(NumberFormatException e){
+                write(currentPlayer.getWriter(), "Input before \"-\" needs to be a number!", '0');
+                flush(currentPlayer.getWriter());
+                return MoveType.INVALID;
+            }
+            try{
+                cardIndice2 = Integer.parseInt(splittedInput[1]);
+            }catch(NumberFormatException e){
+                write(currentPlayer.getWriter(), "Input after \"-\" needs to be a number!", '0');
+                flush(currentPlayer.getWriter());
+                return MoveType.INVALID;
+            }
+            cardIndice1--;
+            cardIndice2--;
+            if(cardIndice1 >= maxIndice || cardIndice1 < maxIndice-currentPlayer.getHandCardsCount()){
+                write(currentPlayer.getWriter(), "First card indice is out of bounds. Please try again!!", '0');
+                flush(currentPlayer.getWriter());
+                return MoveType.INVALID;
+            }
+            else if(cardIndice2 >= maxIndice || cardIndice2 < maxIndice-currentPlayer.getHandCardsCount()){
+                write(currentPlayer.getWriter(), "Second card indice is out of bounds. Please try again!!", '0');
+                flush(currentPlayer.getWriter());
+                return MoveType.INVALID;
+            }
+            else if(cardIndice1 == cardIndice2){
+                write(currentPlayer.getWriter(), "You can't swap the same card!!", '0');
+                flush(currentPlayer.getWriter());
+                return MoveType.INVALID;
+            }
+            return MoveType.SWAP;
+        }
         int cardIndice;
         try {
             cardIndice = Integer.parseInt(userInput);
@@ -198,7 +248,6 @@ public class Game extends Communication{
             return MoveType.INVALID;
         }
         cardIndice--;
-        int maxIndice = currentPlayer.getStoreCardsSize() + currentPlayer.getHandCardsCount();
         if(cardIndice >= maxIndice || cardIndice < 0) {
             write(currentPlayer.getWriter(), "Out of bounds card indice. Please try again!!", '0');
             flush(currentPlayer.getWriter());
@@ -230,16 +279,40 @@ public class Game extends Communication{
                 currentPlayer.addHandCard(card);
                 currentPlayer.removeStoreCard(cardIndice);
                 reorderCardIndices(currentPlayer);
-                drawStoreState(currentPlayer);
+                drawStoreState(currentPlayer, false);
                 write(currentPlayer.getWriter(), "", '0');
                 flush(currentPlayer.getWriter());
             }
             case SELL -> {
+                int cardIndice = Integer.parseInt(userInput)-currentPlayer.getStoreCardsSize()-1;
+                currentPlayer.removeHandCard(cardIndice);
+                reorderCardIndices(currentPlayer);
+                drawStoreState(currentPlayer, false);
+                write(currentPlayer.getWriter(), "", '0');
+                flush(currentPlayer.getWriter());
 
+            }
+            case REROLL -> {
+                refillStore(currentPlayer);
+                currentPlayer.setGold(currentPlayer.getGold()-1);
+                reorderCardIndices(currentPlayer);
+                drawStoreState(currentPlayer, false);
+                write(currentPlayer.getWriter(), "", '0');
+                flush(currentPlayer.getWriter());
+            }
+            case SWAP -> {
+                String[] splitInput = userInput.split("-");
+                int cardIndice1 = Integer.parseInt(splitInput[0])-currentPlayer.getStoreCardsSize()-1;
+                int cardIndice2 = Integer.parseInt(splitInput[1])-currentPlayer.getStoreCardsSize()-1;
+                currentPlayer.swapCards(cardIndice1, cardIndice2);
+                reorderCardIndices(currentPlayer);
+                drawStoreState(currentPlayer, false);
+                write(currentPlayer.getWriter(), "", '0');
+                flush(currentPlayer.getWriter());
             }
             case ENDTURN -> {
                 this.finishedStatePlayersCount++;
-                if(this.finishedStatePlayersCount != this.players.size()) drawStoreState(currentPlayer);
+                if(this.finishedStatePlayersCount != this.players.size()) drawStoreState(currentPlayer, true);
             }
         }
     }
@@ -258,6 +331,7 @@ public class Game extends Communication{
                 storeWidth += card.getWidth();
                 Collections.shuffle(this.store);
                 storeIndex = 0;
+                if(player.getStoreCardsSize() == 3) break;
             }
 
 
@@ -283,26 +357,31 @@ public class Game extends Communication{
         Player player1 = fight.getFirst();
         Player player2 = fight.getLast();
 
-        String text = CLEAR_SCREEN.concat("\n");
-        String player1Cards = drawCards(player1.getHandCards());
-        String player2Cards = drawCards(player2.getHandCards());
-        write(player1.getWriter(), text.concat(player2Cards).concat(player1Cards));
-        write(player2.getWriter(), text.concat(player1Cards).concat(player2Cards));
+        String text = CLEAR_SCREEN;
+        String player1info = player1.draw();
+        String player2info = player2.draw();
+        String player1Cards = drawCards(player1.getHandCards(), true);
+        String player2Cards = drawCards(player2.getHandCards(), true);
+        write(player1.getWriter(), text.concat(player2info).concat("\n").concat(player2Cards).concat(player1Cards).concat(" ").concat(player1info));
+        write(player2.getWriter(), text.concat(player1info).concat("\n").concat(player1Cards).concat(player2Cards).concat(" ").concat(player2info));
         flush(player1.getWriter());
         flush(player2.getWriter());
 
     }
-    public void drawStoreState(Player player){
-        String text = CLEAR_SCREEN.concat("\n");
-        text = text.concat(drawCards(player.getStoreCards()));
-        text = text.concat(drawCards(player.getHandCards()));
+    public void drawStoreState(Player player, boolean hideIndex){
+        String text = CLEAR_SCREEN;
+        for(Player p : this.players){
+            text = text.concat(p.draw());
+        }
+        text = text.concat("\n").concat(drawCards(player.getStoreCards(), hideIndex));
+        text = text.concat(drawCards(player.getHandCards(), hideIndex));
 
         write(player.getWriter(), text);
         flush(player.getWriter());
 
     }
 
-    public String drawCards(List<Card> cards){
+    public String drawCards(List<Card> cards, boolean hideIndex){
         String text = "";
         for(int j = 0; j < CARD_HEIGHT; j++){
             if(!cards.isEmpty()) {
@@ -310,7 +389,7 @@ public class Game extends Communication{
                 if (j == 0) text = text.concat(" ");
                 else text = text.concat("|");
                 for (Card card : cards) {
-                    text = text.concat(card.draw(j, CARD_HEIGHT));
+                    text = text.concat(card.draw(j, CARD_HEIGHT, hideIndex));
                 }
             }
             text = text.concat("\n");
@@ -321,138 +400,4 @@ public class Game extends Communication{
 
 
 
-
-    /*private String drawGameState(){
-        String text = "";
-
-        text = text.concat("\n");
-
-        int boardCardDistance= 70;
-
-        Card topCard;
-        if(this.cards.isEmpty()) topCard = null;
-        else topCard = this.cards.peek();
-
-        for(int j = 0; j < this._cardHeight; j++){
-            String currentText = "";
-            currentText = currentText.concat("    ");
-            int startingIndex = 0;
-            if(j < this.players.size()){
-                Player player = this.players.get(j);
-                currentText = currentText.concat("|").concat(player.getName());
-                currentText = currentText.concat(" ").concat(Integer.toString(player.getLives())).concat("<3");
-                currentText = currentText.concat(" #").concat(Integer.toString(player.getRank())).concat("|");
-                startingIndex = 7+player.getName().length()+Integer.toString(player.getLives()).length()+Integer.toString(player.getRank()).length();
-            }
-            if(topCard != null){
-                for(int i = startingIndex; i < boardCardDistance; i++){
-                    currentText = currentText.concat(" ");
-                }
-                currentText = currentText.concat(topCard.draw(j, this._cardWidth, this._cardHeight));
-            }
-            currentText = currentText.concat("\n");
-            text = text.concat(currentText);
-        }
-
-        return text;
-    }
-
-    private void drawHands(){
-        for(Player player : this.currentPlayers){
-            player.drawHand(this._cardWidth, this._cardHeight);
-        }
-    }
-
-
-
-
-    private void gameLogic(Player currentPlayer) throws IOException {
-        if (!this.cards.isEmpty() && currentPlayer.hasLost(this.cards.peek())) {
-            if(currentPlayer.getLives() <= 0) {
-                write(currentPlayer.getWriter(), "you lost!", '1');
-                flush(currentPlayer.getWriter());
-                if (_gamemode == 'b') {
-                    currentPlayer.updateRank(currentScore, false);
-                    currentScore += SCORE_RANGE / (this.players.size() - 1);
-                }
-                currentPlayer.resetPlayerGameInfo();
-            }
-            else{
-                this.currentPlayers.add(currentPlayer);
-                while(!this.cards.isEmpty()){
-                    Card card = this.cards.pop();
-                    for(Player player : this.currentPlayers){
-                        if(player.getName().equals(card.getOwner())){
-                            player.discardCard(card);
-                            break;
-                        }
-                    }
-                }
-            }
-
-        } else {
-            write(currentPlayer.getWriter(), "your move.", '0');
-            flush(currentPlayer.getWriter());
-            if (makeMove(currentPlayer)) {
-                this.currentPlayers.add(currentPlayer);
-            } else if (_gamemode == 'b') {
-                currentPlayer.updateRank(currentScore, false);
-                currentScore += SCORE_RANGE / (this.players.size() - 1);
-                currentPlayer.resetPlayerGameInfo();
-            } else {
-                currentPlayer.resetPlayerGameInfo();
-            }
-
-
-        }
-    }
-
-
-
-
-
-     */
-
-
-        /*public boolean makeMove(Player currentPlayer) throws IOException {
-
-        int cardNumber;
-        String move = "";
-
-        while(true) {
-            try {
-                move = read(currentPlayer.getReader(), currentPlayer.getWriter()).getLast();
-            }catch(SocketException e){
-                currentPlayer.getTimerTask().setDisconnected(true);
-                while(currentPlayer.getTimerTask().getDisconnected()){
-                    System.out.print("");
-                    if(currentPlayer.getTimerTask().getTimedOut()){
-                        return false;
-                    }
-                }
-                write(currentPlayer.getWriter(), currentPlayer.getText());
-                flush(currentPlayer.getWriter());
-                write(currentPlayer.getWriter(), "your move.", '0');
-                flush(currentPlayer.getWriter());
-                continue;
-            }
-            try {
-                cardNumber = Integer.parseInt(move);
-                if(isValidMove(currentPlayer, cardNumber-1)){
-                    break;
-                }
-            } catch (NumberFormatException e) {
-                write(currentPlayer.getWriter(), "Input needs to be a number!", '0');
-                flush(currentPlayer.getWriter());
-                continue;
-            }
-            write(currentPlayer.getWriter(), "Invalid move! Please try again.", '0');
-            flush(currentPlayer.getWriter());
-        }
-
-        this.cards.push(currentPlayer.getCard(cardNumber-1));
-        currentPlayer.playCard(cardNumber-1);
-        this.cards.peek().triggerOnPlayEffects(currentPlayer);
-        return true;
-    }*/
 }

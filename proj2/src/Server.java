@@ -317,9 +317,7 @@ public class Server extends Communication{
 
             if (!player.getTimerTask().getDisconnected()){
                 this.rankedPlayers.sort(Comparator.comparingInt(p ->
-                        Math.max(
-                                Math.abs(player.getRank() - p.getRank())
-                                , 0)
+                        Math.abs(player.getRank() - p.getRank())
                 ));
                 for (int i = 0; i < NUM_PLAYERS-1; i++) {
                     Player p = this.rankedPlayers.getFirst();
