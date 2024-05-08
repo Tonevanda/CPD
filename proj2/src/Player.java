@@ -223,7 +223,7 @@ public class Player{
     public void resetStoreCards(){this.storeCards.clear();}
 
     public void resetEffects(){
-        _gold += 3;
+        _gold += 5;
         this._speed = this._originalSpeed;
         this._strength = this._originalStrength;
         this._armor = this._originalArmor;
@@ -286,7 +286,7 @@ public class Player{
             else left = this.hand.get(i-1);
             if(i == this.hand.size()-1)right = null;
             else right = this.hand.get(i+1);
-            card.triggerOnMoveAdjacentEffect(left, right);
+            card.triggerOnMove(this, left, right, i);
         }
 
     }
@@ -303,7 +303,7 @@ public class Player{
         for(int i = 0; i < this.hand.size(); i++){
             Card card = this.hand.get(i);
 
-            card.triggerCooldownEffect(this, enemyPlayer);
+            card.triggerCooldownEffect(this, enemyPlayer, i);
         }
     }
 

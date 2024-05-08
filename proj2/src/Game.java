@@ -155,7 +155,7 @@ public class Game extends Communication{
                             this.players.sort((p1, p2) -> (p2.getHealth() - p1.getHealth()));
                             for(Player player : this.players){
                                 if(nonPlayingPlayer != null && nonPlayingPlayer.getName().equals(player.getName())){
-                                    player.setGold(player.getGold()+1);
+                                    player.setGold(player.getGold()+3);
                                 }
                                 else player.resetEffects();
 

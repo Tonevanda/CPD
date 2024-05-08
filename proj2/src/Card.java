@@ -28,7 +28,11 @@ public class Card {
         FENCE,
         TEDDY,
         SCROLL,
-        CAT
+        CAT,
+        DRUMS,
+        BOW,
+        BRUSH,
+        KNIFE
 
 
 
@@ -237,7 +241,7 @@ public class Card {
                         { : : : : : :|::::|: : : : : : }
                          \\ : : : : : |::::| : : : : : /
                           \\==========================/
-                         \n""";
+                         \n \n""";
 
                 this._width = 33;
                 this._gold = 1;
@@ -273,7 +277,8 @@ public class Card {
                            ____/ /___
                           / .------  )
                          / /        /
-                        / /        /""";
+                        / /        /
+                         \n""";
                 this._width = 20;
                 this._gold = 2;
                 this._cooldown = 4;
@@ -361,6 +366,84 @@ public class Card {
                 this._isInstant = true;
                 power = "Bought: +10 MaxHealth and Heal 40";
             }
+            case DRUMS -> {
+                ascii = """
+                            __________        ,.     ,.
+                          ,','.___.,',`.      `.\\   /,'       ___________
+                         / /.____./ / \\ \\       \\\\ //      ,''..-------..``.
+                        : :      : :   : :       \\//       :`-..._____...-':
+                        [ |.____.| ]   | ]       //\\       |`-..._____...-'|
+                        | |      | |   | |      // \\\\      |   |       |   |
+                        [ |.____.| ]   | ]     //   \\\\     |]  |       |  [|
+                        | |      | |   | |    //     \\\\    |   []     []   |
+                        : :.____.: :   ; ;   //       \\\\   |   |  ___  |   |
+                         \\ \\.____.\\ \\ / /   //        \\\\   :`-.:._]|[_.:.-';
+                          `.`.____.`.`,'   `'          `'   `-...|   |...-'
+                         \n \n""";
+
+                this._width = 53;
+                this._gold = 12;
+                this._cooldown = 10;
+                power = "Gain Speed equal to your Strength";
+            }
+            case BOW -> {
+                ascii = """
+                            /`.
+                           /   :.
+                          /     \\\\
+                         /       ::
+                        /        ||
+                        )>>>--,-'-)>
+                        \\        ||
+                         \\       ;;
+                          \\     //
+                           \\   ;'
+                            \\,'
+                            \s""";
+
+                this._width = 13;
+                this._gold = 4;
+                this._cooldown = 9;
+                this._damage = 0;
+                power = "0 Damage.+3 for each small card.";
+
+            }
+            case BRUSH -> {
+
+                ascii = """
+                         .----,
+                        /--._(
+                        |____|
+                        [____] .=======.
+                          YY   q.     .p
+                          ||   | `---' |
+                          ||   |       |
+                          ||   |       |
+                          ||   |       |
+                          []   |_______|
+                         \n
+                         """;
+
+                this._width = 17;
+                this._gold = 4;
+                this._cooldown = 10;
+                this._damage = 15;
+                power = "15 Damage. After first use, cooldown turns to 2s";
+            }
+            case KNIFE -> {
+                ascii = """
+                                    /\\
+                        /vvvvvvvvvvvv \\--------------------,
+                        `^^^^^^^^^^^^ /==================="
+                                    \\/
+                         \n \n""";
+
+                this._width = 37;
+                this._gold = 5;
+                this._cooldown = 6;
+                this._damage = 11;
+                power = "11 Damage. Whenever another card is used: +2 Damage and -3 Cooldown";
+            }
         }
 
         fillArt(ascii);
@@ -443,6 +526,18 @@ public class Card {
                 this._description.clear();
                 fillDescription(Integer.toString(this._damage).concat(" Damage. Bought: 2 Speed"));
             }
+            case BOW -> {
+                this._description.clear();
+                fillDescription(Integer.toString(this._damage).concat(" Damage. +3 Damage per smaller owned cards"));
+            }
+            case BRUSH -> {
+                this._description.clear();
+                fillDescription(Integer.toString(this._damage).concat(" Damage. After first use, cool down turns to 2s"));
+            }
+            case KNIFE -> {
+                this._description.clear();
+                fillDescription(Integer.toString(this._damage).concat(" Damage. Whenever another card is used: +2 Damage and -3 Cooldown"));
+            }
         }
     }
 
@@ -456,11 +551,11 @@ public class Card {
         }
     }
 
-    public void triggerCooldownEffect(Player friendlyPlayer, Player enemyPlayer){
+    public void triggerCooldownEffect(Player friendlyPlayer, Player enemyPlayer, int cardIndex){
         this._cooldown--;
         if(this._cooldown <= 0) {
             switch (this._type) {
-                case SWORD, ANTEATER, AXE, SHOVEL -> {
+                case SWORD, ANTEATER, AXE, SHOVEL, BOW, KNIFE -> {
                     enemyPlayer.takeDamage(this._damage);
                 }
                 case WEIGHTS -> {
@@ -473,22 +568,44 @@ public class Card {
                 case FENCE, TEDDY -> {
                     friendlyPlayer.setArmor(friendlyPlayer.getArmor()+this._armor);
                 }
+                case DRUMS -> {
+                    friendlyPlayer.setSpeed(friendlyPlayer.getSpeed() + friendlyPlayer.getStrength());
+                }
             }
             if(this._originalCooldown > 0) {
                 for (int i = 0; i < friendlyPlayer.getHandCardsCount(); i++) {
-                    Card card = friendlyPlayer.getHandCard(i);
-                    card.triggerAfterItemTriggersEffect();
+                    if(i != cardIndex) {
+                        Card card = friendlyPlayer.getHandCard(i);
+                        card.triggerAfterItemTriggersEffect();
+                    }
                 }
             }
             this._cooldown = this._originalCooldown-friendlyPlayer.getSpeed()*this._originalCooldown/100;
+
+            switch(this._type){
+                case BRUSH -> {
+                    setCooldown(2-friendlyPlayer.getSpeed()*2/100);
+                    enemyPlayer.takeDamage(this._damage);
+                }
+            }
         }
     }
 
-    public void triggerOnMoveAdjacentEffect(Card left, Card right){
+    public void triggerOnMove(Player friendlyPlayer, Card left, Card right, int cardIndex){
         switch(this._type){
             case SHIELD -> {
                 if(left != null && left.getOriginalDamage() != 0)left.setDamage(left.getDamage()+6);
                 if(right != null && right.getOriginalDamage() != 0)right.setDamage(right.getDamage()+6);
+            }
+            case BOW -> {
+                int count = 0;
+                for(int i = 0; i < friendlyPlayer.getHandCardsCount(); i++){
+                    if(i != cardIndex){
+                        Card card = friendlyPlayer.getHandCard(i);
+                        if(card.getWidth() <= 30) count++;
+                    }
+                }
+                setDamage(this._originalDamage+3*count+friendlyPlayer.getStrength());
             }
 
         }
@@ -538,6 +655,10 @@ public class Card {
         switch(this._type){
             case TEDDY -> {
                 setArmor(this._armor+1);
+            }
+            case KNIFE -> {
+                setDamage(this._damage+2);
+                setCooldown(this._cooldown-3);
             }
         }
     }
