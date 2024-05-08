@@ -381,6 +381,7 @@ public class Game extends Communication{
                     currentPlayer.increaseLockCosts();
                 }
                 currentPlayer.setGold(currentPlayer.getGold()+goldOffset);
+                card.triggerOnSellEffect(currentPlayer);
                 currentPlayer.removeHandCard(cardIndice);
                 currentPlayer.reorderCardIndices();
                 drawStoreState(currentPlayer, false);

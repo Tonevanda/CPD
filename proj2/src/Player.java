@@ -33,6 +33,8 @@ public class Player{
 
     private int _gold = 5;
 
+    private int _originalSpeed = 0;
+
     private int _speed = 0;
 
     private int _originalStrength = 0;
@@ -67,6 +69,7 @@ public class Player{
         this._maxHealth = 300;
         this._gold = 5;
         this._speed = 0;
+        this._originalSpeed = 0;
         this._strength = 0;
         this._originalStrength = 0;
         this._handWidth = 1;
@@ -119,6 +122,8 @@ public class Player{
 
     public int getSpeed(){return this._speed;}
 
+    public int getOriginalSpeed(){return this._originalSpeed;}
+
     public int getStrength(){return this._strength;}
 
     public int getOriginalStrength(){return this._originalStrength;}
@@ -165,6 +170,12 @@ public class Player{
         }
     }
 
+    public void setOriginalSpeed(int speed){
+        speed = Math.max(Math.min(speed, 100), 0);
+        setSpeed(this._speed + speed - this._originalSpeed);
+        this._originalSpeed = speed;
+    }
+
     public void setStrength(int strength){
         for(Card card : this.hand){
             card.setDamage(card.getDamage() + strength-this._strength);
@@ -188,6 +199,7 @@ public class Player{
     public void resetEffects(){
         _health = Math.min(_health+50, _maxHealth);
         _gold += 3;
+        this._speed = this._originalSpeed;
         this._strength = this._originalStrength;
         for(Card card : this.hand){
             card.resetStats();
@@ -232,6 +244,7 @@ public class Player{
         }
         for(Card card : this.hand){
             card.setDamage(card.getOriginalDamage()+this._originalStrength);
+            card.setCooldown(card.getOrignalCooldown()-this._originalSpeed*card.getOrignalCooldown()/100);
             card.setIndex(cardIndice);
             cardIndice++;
         }
@@ -244,7 +257,7 @@ public class Player{
             else left = this.hand.get(i-1);
             if(i == this.hand.size()-1)right = null;
             else right = this.hand.get(i+1);
-            card.triggerOnMoveEffect(left, right);
+            card.triggerOnMoveAdjacentEffect(left, right);
         }
 
     }

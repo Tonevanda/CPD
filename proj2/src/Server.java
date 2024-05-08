@@ -2,6 +2,8 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -199,6 +201,8 @@ public class Server extends Communication{
             }
         }catch(SocketException e){
             throw e;
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
         }
         Player player;
         if(this.currentAuths.containsKey(name)) {
@@ -250,7 +254,7 @@ public class Server extends Communication{
 
             System.out.println("Server is listening on port " + port);
 
-            for(int i = 1; i <= 8; i++){
+            for(int i = 1; i <= 9; i++){
                 this.gameStore.add(new Card(i));
             }
 
@@ -438,7 +442,8 @@ public class Server extends Communication{
         }
     }
 
-    private int authenticateClient(String name, String password, PrintWriter writer){
+    private int authenticateClient(String name, String password, PrintWriter writer) throws NoSuchAlgorithmException {
+        password = hashPassword(password);
         locks.getFirst().lock();
         try {
             // Load the JSON file
@@ -491,6 +496,17 @@ public class Server extends Communication{
         return user;
     }
 
+    private String hashPassword(String password) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        md.update(password.getBytes());
+
+        String result = "";
+        for(byte b : md.digest()){
+            result = result.concat(String.format("%02x", b));
+        }
+
+        return result;
+    }
     private JSONArray loadJson() {
         try {
             String content = new String(Files.readAllBytes(Paths.get(dbPath)));

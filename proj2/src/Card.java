@@ -244,8 +244,9 @@ public class Card {
                         | \\ `_////-._'-'-'-""\"""\"`
                         J_/___"=> __/`\\
                         |=====;__/___./
-                        '-'-'-""\"""\""`""";
-                this._width = 40;
+                        '-'-'-""\"""\""`
+                         \n \n""";
+                this._width = 30;
                 this._gold = 1;
                 power = "+20»";
             }
@@ -347,19 +348,21 @@ public class Card {
         }
     }
 
-    public void triggerOnMoveEffect(Card left, Card right){
+    public void triggerOnMoveAdjacentEffect(Card left, Card right){
         switch(this._type){
             case SHIELD -> {
                 if(left != null && left.getOriginalDamage() != 0)left.setDamage(left.getDamage()+6);
                 if(right != null && right.getOriginalDamage() != 0)right.setDamage(right.getDamage()+6);
             }
+
         }
     }
+
 
     public void triggerOnBuyEffect(Player friendlyPlayer){
         switch(this._type){
             case AXE -> {
-                friendlyPlayer.setSpeed(friendlyPlayer.getSpeed()+2);
+                friendlyPlayer.setOriginalSpeed(friendlyPlayer.getOriginalSpeed()+2);
             }
             case CASTLE -> {
                 friendlyPlayer.setOriginalStrength(friendlyPlayer.getOriginalStrength()+1);
@@ -369,6 +372,17 @@ public class Card {
             }
             case BANDAID -> {
                 friendlyPlayer.setHealth(friendlyPlayer.getHealth()+100);
+            }
+            case BOOTS -> {
+                friendlyPlayer.setOriginalSpeed(friendlyPlayer.getOriginalSpeed()+20);
+            }
+        }
+    }
+
+    public void triggerOnSellEffect(Player friendlyPlayer){
+        switch(this._type){
+            case BOOTS -> {
+                friendlyPlayer.setOriginalSpeed(friendlyPlayer.getOriginalSpeed()-20);
             }
         }
     }
