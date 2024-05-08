@@ -32,7 +32,8 @@ public class Card {
         DRUMS,
         BOW,
         BRUSH,
-        KNIFE
+        KNIFE,
+        BED
 
 
 
@@ -61,6 +62,8 @@ public class Card {
 
     private int _originalArmor = 0;
     private int _armor = 0;
+
+    private int _speed = 0;
 
 
     private boolean _isInstant = false;
@@ -441,9 +444,24 @@ public class Card {
 
                 this._width = 37;
                 this._gold = 5;
-                this._cooldown = 6;
+                this._cooldown = 12;
                 this._damage = 11;
                 power = "11 Damage. Whenever another card is used: +2 Damage and -3 Cooldown";
+            }
+            case BED -> {
+                ascii = """
+                          ()___\s
+                        ()//__/)_________________()
+                        ||(___)//#/_/#/_/#/_/#()/||
+                        ||----|#| |#|_|#|_|#|_|| ||
+                        ||____|_|#|_|#|_|#|_|#||/||
+                        ||    |#|_|#|_|#|_|#|_||
+                         \n \n""";
+
+                this._width = 28;
+                this._gold = 1;
+                this._cooldown = 20;
+                power = "+10 Speed. Whenever you buy a card to your hand this gains +5 Speed";
             }
         }
 
@@ -502,9 +520,10 @@ public class Card {
 
     public int getDamage(){return this._damage;}
 
+    public int getSpeed(){return this._speed;}
+
     public int getOrignalCooldown(){return this._originalCooldown;}
 
-    public int getCooldown(){return this._cooldown;}
 
     public int getOriginalDamage(){return this._originalDamage;}
 
@@ -514,6 +533,7 @@ public class Card {
         this._cooldown = cooldown;
         if(this._originalCooldown > 0) this._cooldown = Math.max(this._cooldown, 1);
     }
+
 
 
     public void setDamage(int damage){
@@ -529,7 +549,7 @@ public class Card {
             }
             case BOW -> {
                 this._description.clear();
-                fillDescription(Integer.toString(this._damage).concat(" Damage. +3 Damage per smaller owned cards"));
+                fillDescription(Integer.toString(this._damage).concat(" Damage.+3 for each small card."));
             }
             case BRUSH -> {
                 this._description.clear();
@@ -572,6 +592,9 @@ public class Card {
                 case DRUMS -> {
                     friendlyPlayer.setSpeed(friendlyPlayer.getSpeed() + friendlyPlayer.getStrength());
                 }
+                case BED -> {
+                    friendlyPlayer.setSpeed(friendlyPlayer.getSpeed()+10);
+                }
             }
             if(this._originalCooldown > 0) {
                 for (int i = 0; i < friendlyPlayer.getHandCardsCount(); i++) {
@@ -581,7 +604,7 @@ public class Card {
                     }
                 }
             }
-            this._cooldown = this._originalCooldown-friendlyPlayer.getSpeed()*this._originalCooldown/100;
+            this._cooldown = this._originalCooldown-(friendlyPlayer.getSpeed()+this._speed)*this._originalCooldown/100;
 
             switch(this._type){
                 case BRUSH -> {
@@ -603,10 +626,10 @@ public class Card {
                 for(int i = 0; i < friendlyPlayer.getHandCardsCount(); i++){
                     if(i != cardIndex){
                         Card card = friendlyPlayer.getHandCard(i);
-                        if(card.getWidth() <= 30) count++;
+                        if(card.getWidth() <= 20 && card.getType() != 0) count++;
                     }
                 }
-                setDamage(this._originalDamage+3*count+friendlyPlayer.getStrength());
+                setDamage(this._damage+3*count);
             }
 
         }
@@ -660,6 +683,17 @@ public class Card {
             case KNIFE -> {
                 setDamage(this._damage+2);
                 setCooldown(this._cooldown-3);
+            }
+        }
+    }
+
+    public void triggerAfterBuyingEffect(Card boughtCard){
+        switch(this._type){
+            case BED-> {
+                if(!boughtCard.isInstant()) {
+                    this._speed = Math.min(this._speed + 5, 100);
+
+                }
             }
         }
     }

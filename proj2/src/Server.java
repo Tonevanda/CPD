@@ -254,7 +254,7 @@ public class Server extends Communication{
 
             System.out.println("Server is listening on port " + port);
 
-            for(int i = 1; i <= 18; i++){
+            for(int i = 1; i <= 19; i++){
                 this.gameStore.add(new Card(i));
             }
 

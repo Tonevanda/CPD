@@ -381,9 +381,13 @@ public class Game extends Communication{
             case BUY ->{
                 int cardIndice = Integer.parseInt(userInput)-1;
                 Card card = currentPlayer.getStoreCard(cardIndice);
+                for(Card c : currentPlayer.getHandCards()){
+                    c.triggerAfterBuyingEffect(card);
+                }
                 if(!card.isInstant())currentPlayer.addHandCard(card);
                 currentPlayer.setGold(currentPlayer.getGold()-card.getGold());
                 card.triggerOnBuyEffect(currentPlayer);
+
                 currentPlayer.removeStoreCard(cardIndice);
                 currentPlayer.reorderCardIndices();
                 drawStoreState(currentPlayer, false);
@@ -477,7 +481,7 @@ public class Game extends Communication{
     public void drawStoreState(Player player, boolean hideIndex){
         String text = CLEAR_SCREEN;
         if(!hideIndex)
-            text = text.concat(" (0)END TURN");
+            text = text.concat(" (0)END TURN").concat(" (R)REFILL");
         for(Player p : this.players){
             text = text.concat(p.draw(false));
         }

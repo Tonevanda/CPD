@@ -72,7 +72,7 @@ public class Player{
     public void resetPlayerGameInfo(){
         this._health = 300;
         this._maxHealth = 300;
-        this._gold = 5;
+        this._gold = 100000;
         this._speed = 0;
         this._originalSpeed = 0;
         this._strength = 0;
@@ -223,7 +223,7 @@ public class Player{
     public void resetStoreCards(){this.storeCards.clear();}
 
     public void resetEffects(){
-        _gold += 5;
+        _gold += 10000;
         this._speed = this._originalSpeed;
         this._strength = this._originalStrength;
         this._armor = this._originalArmor;
@@ -273,7 +273,7 @@ public class Player{
         }
         for(Card card : this.hand){
             card.setDamage(card.getOriginalDamage()+this._originalStrength);
-            card.setCooldown(card.getOrignalCooldown()-this._originalSpeed*card.getOrignalCooldown()/100);
+            card.setCooldown(card.getOrignalCooldown()-(this._originalSpeed+card.getSpeed())*card.getOrignalCooldown()/100);
             card.setIndex(cardIndice);
             cardIndice++;
         }
