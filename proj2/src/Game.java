@@ -119,6 +119,7 @@ public class Game extends Communication{
                             }
                             for(Player p : this.players){
                                 if(nonPlayingPlayer != null && p.getName().equals(nonPlayingPlayer.getName())) continue;
+                                p.setIsFighting(true);
                                 fight.add(p);
                                 if(fight.size() == 2){
                                     this.fights.add(fight);
@@ -128,6 +129,7 @@ public class Game extends Communication{
                             }
                             if(!fight.isEmpty()){
                                 nonPlayingPlayer = fight.getFirst();
+                                nonPlayingPlayer.setIsFighting(false);
                             }
 
                             timerTask.setTimer(0);
@@ -159,6 +161,7 @@ public class Game extends Communication{
                                 }
                                 else player.resetEffects();
 
+                                player.setIsFighting(false);
                                 refillStore(player);
                                 drawStoreState(player, false);
                                 write(player.getWriter(), "", '0');

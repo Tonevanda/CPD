@@ -1,7 +1,4 @@
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class Card {
 
@@ -64,6 +61,8 @@ public class Card {
     private int _armor = 0;
 
     private int _speed = 0;
+
+    private int _rand = -1;
 
 
     private boolean _isInstant = false;
@@ -430,8 +429,8 @@ public class Card {
                 this._width = 17;
                 this._gold = 4;
                 this._cooldown = 10;
-                this._damage = 15;
-                power = "15 Damage. After first use, cooldown turns to 2s";
+                this._damage = 3;
+                power = "3 Damage. +3 Damage whenever you gain Armor";
             }
             case KNIFE -> {
                 ascii = """
@@ -443,10 +442,10 @@ public class Card {
                          \n\s""";
 
                 this._width = 37;
-                this._gold = 5;
-                this._cooldown = 12;
-                this._damage = 11;
-                power = "11 Damage. Whenever another card is used: +2 Damage and -3 Cooldown";
+                this._gold = 10;
+                this._cooldown = 10;
+                this._damage = 1;
+                power = "1 Damage. Double this card's damage";
             }
             case BED -> {
                 ascii = """
@@ -460,8 +459,31 @@ public class Card {
 
                 this._width = 28;
                 this._gold = 1;
-                this._cooldown = 20;
-                power = "+10 Speed. Whenever you buy a card to your hand this gains +5 Speed";
+                this._isInstant = true;
+                Random random = new Random();
+                this._rand = Math.abs(random.nextInt()) % 5;
+                switch(this._rand){
+                    case 0 -> {
+                        power = "Bought: +20 maxHealth";
+                    }
+                    case 1 ->{
+                        this._gold = 4;
+                        power = "Bought: +50 maxHealth";
+                    }
+                    case 2 ->{
+                        power = "Bought: +2 Strength";
+                    }
+                    case 3 ->{
+                        this._gold = 4;
+                        power = "Bought: +4 Strength";
+                    }
+                    case 4 -> {
+                        this._gold = 4;
+                        power = "Bought: +6 Speed";
+                    }
+                }
+
+
             }
         }
 
@@ -522,6 +544,8 @@ public class Card {
 
     public int getSpeed(){return this._speed;}
 
+    public int getCooldown(){return this._cooldown;}
+
     public int getOrignalCooldown(){return this._originalCooldown;}
 
 
@@ -553,11 +577,11 @@ public class Card {
             }
             case BRUSH -> {
                 this._description.clear();
-                fillDescription(Integer.toString(this._damage).concat(" Damage. After first use, cool down turns to 2s"));
+                fillDescription(Integer.toString(this._damage).concat(" Damage. +3 Damage whenever you gain Armor"));
             }
             case KNIFE -> {
                 this._description.clear();
-                fillDescription(Integer.toString(this._damage).concat(" Damage. Whenever another card is used: +2 Damage and -3 Cooldown"));
+                fillDescription(Integer.toString(this._damage).concat(" Damage. Double this card's damage"));
             }
         }
     }
@@ -576,7 +600,7 @@ public class Card {
         this._cooldown--;
         if(this._cooldown <= 0) {
             switch (this._type) {
-                case SWORD, ANTEATER, AXE, SHOVEL, BOW, KNIFE -> {
+                case SWORD, ANTEATER, AXE, SHOVEL, BOW, BRUSH -> {
                     enemyPlayer.takeDamage(this._damage);
                 }
                 case WEIGHTS -> {
@@ -592,8 +616,9 @@ public class Card {
                 case DRUMS -> {
                     friendlyPlayer.setSpeed(friendlyPlayer.getSpeed() + friendlyPlayer.getStrength());
                 }
-                case BED -> {
-                    friendlyPlayer.setSpeed(friendlyPlayer.getSpeed()+10);
+                case KNIFE -> {
+                    enemyPlayer.takeDamage(this._damage);
+                    setDamage(this._damage*2);
                 }
             }
             if(this._originalCooldown > 0) {
@@ -606,12 +631,6 @@ public class Card {
             }
             this._cooldown = this._originalCooldown-(friendlyPlayer.getSpeed()+this._speed)*this._originalCooldown/100;
 
-            switch(this._type){
-                case BRUSH -> {
-                    setCooldown(2-friendlyPlayer.getSpeed()*2/100);
-                    enemyPlayer.takeDamage(this._damage);
-                }
-            }
         }
     }
 
@@ -664,6 +683,25 @@ public class Card {
                 friendlyPlayer.setMaxHealth(friendlyPlayer.getMaxHealth() + 10);
                 friendlyPlayer.setHealth(friendlyPlayer.getHealth()+40);
             }
+            case BED -> {
+                switch(this._rand){
+                    case 0 -> {
+                        friendlyPlayer.setMaxHealth(friendlyPlayer.getMaxHealth()+20);
+                    }
+                    case 1 ->{
+                        friendlyPlayer.setMaxHealth(friendlyPlayer.getMaxHealth()+50);
+                    }
+                    case 2 ->{
+                        friendlyPlayer.setOriginalStrength(friendlyPlayer.getOriginalStrength()+2);
+                    }
+                    case 3 ->{
+                        friendlyPlayer.setOriginalStrength(friendlyPlayer.getOriginalStrength()+4);
+                    }
+                    case 4 -> {
+                        friendlyPlayer.setOriginalSpeed(friendlyPlayer.getOriginalSpeed()+6);
+                    }
+                }
+            }
         }
     }
 
@@ -689,11 +727,14 @@ public class Card {
 
     public void triggerAfterBuyingEffect(Card boughtCard){
         switch(this._type){
-            case BED-> {
-                if(!boughtCard.isInstant()) {
-                    this._speed = Math.min(this._speed + 5, 100);
 
-                }
+        }
+    }
+
+    public void triggerOnGainingArmorEffect(){
+        switch(this._type){
+            case BRUSH -> {
+                setDamage(this._damage + 3);
             }
         }
     }

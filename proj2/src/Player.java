@@ -48,6 +48,8 @@ public class Player{
 
     private boolean _inGame = false;
 
+    private boolean _isFighting = false;
+
     public Player(String name, int rank, PrintWriter writer, BufferedReader reader, int timerInterval, int connectionCheckInterval, int connectionTimeout, int disconnectionTimeout){
         this._name = name;
         this._rank = rank;
@@ -72,7 +74,7 @@ public class Player{
     public void resetPlayerGameInfo(){
         this._health = 300;
         this._maxHealth = 300;
-        this._gold = 100000;
+        this._gold = 5;
         this._speed = 0;
         this._originalSpeed = 0;
         this._strength = 0;
@@ -81,6 +83,7 @@ public class Player{
         this._armor = 0;
         this._handWidth = 1;
         this.hand.clear();
+        this._isFighting = false;
         for(int i = 0; i < 4; i++){
             Card lock = new Card(0);
             this.hand.add(lock);
@@ -160,6 +163,8 @@ public class Player{
 
     public void setInGame(boolean inGame) { this._inGame = inGame; }
 
+    public void setIsFighting(boolean isFighting){this._isFighting = isFighting;}
+
     public void setServerState(String serverState){this._serverState = serverState;}
 
 
@@ -174,13 +179,13 @@ public class Player{
     public void setGold(int gold){this._gold = gold;}
 
     public void setSpeed(int speed){
-        this._speed = Math.min(speed, 100);
         for(Card card : this.hand){
             int cooldown = card.getOrignalCooldown();
             if(cooldown > 0){
-                card.setCooldown(cooldown - this._speed*cooldown/100);
+                card.setCooldown(card.getCooldown() - (Math.max(Math.min(100, speed),0) - this._speed)*cooldown/100);
             }
         }
+        this._speed = Math.min(speed, 100);
     }
 
     public void setOriginalSpeed(int speed){
@@ -210,7 +215,16 @@ public class Player{
 
     }
 
-    public void setArmor(int armor){this._armor = armor;}
+    public void setArmor(int armor){
+        if(this._isFighting) {
+            for (Card card : this.hand) {
+                card.triggerOnGainingArmorEffect();
+                ;
+            }
+        }
+        this._armor = armor;
+
+    }
 
     public void setOriginalArmor(int armor){
         setArmor(this._armor + armor - this._originalArmor);
@@ -223,7 +237,7 @@ public class Player{
     public void resetStoreCards(){this.storeCards.clear();}
 
     public void resetEffects(){
-        _gold += 10000;
+        _gold += 5;
         this._speed = this._originalSpeed;
         this._strength = this._originalStrength;
         this._armor = this._originalArmor;

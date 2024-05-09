@@ -65,7 +65,7 @@ public class Client extends Communication{
             while(state != State.QUIT) {
                 switch (state) {
                     case AUTHENTICATION -> {
-                        ArrayList<String> credentials = getCredentials(scanner);
+                        ArrayList<String> credentials = getCredentials(scanner, terminalReader);
                         write(writer, credentials.getFirst());
                         write(writer, credentials.getLast());
                         List<String> response = read(reader, writer);
@@ -152,7 +152,7 @@ public class Client extends Communication{
 
     }
 
-    private ArrayList<String> getCredentials(Scanner scanner) {
+    private ArrayList<String> getCredentials(Scanner scanner, Reader terminalReader) throws IOException {
         ArrayList<String> credentials = new ArrayList<>();
         System.out.println("Enter your name: ");
         String name = scanner.nextLine();
@@ -160,8 +160,10 @@ public class Client extends Communication{
         credentials.add(name);
 
         System.out.println("Enter your password: ");
-        String password = scanner.nextLine();
+        while(!terminalReader.ready());
 
+        String password = scanner.nextLine();
+        System.out.println(CLEAR_SCREEN);
 
         credentials.add(password);
 
