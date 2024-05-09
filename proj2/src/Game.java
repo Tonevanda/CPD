@@ -54,6 +54,8 @@ public class Game extends Communication{
 
     private int finishedStatePlayersCount = 0;
 
+    private Player nonPlayingPlayer = null;
+
     public Game(List<Player> players, List<Card> store, char gamemode){
 
         this.store = store;
@@ -88,7 +90,6 @@ public class Game extends Communication{
             write(player.getWriter(), "", '0');
             flush(player.getWriter());
         }
-        Player nonPlayingPlayer = null;
 
         while (this.state != State.END) {
             switch(this.state){
@@ -275,6 +276,7 @@ public class Game extends Communication{
                 break;
             }
         }
+        if(this.nonPlayingPlayer != null && this.nonPlayingPlayer.getName().equals(player.getName())) this.nonPlayingPlayer = null;
         if(this.players.isEmpty()) write(player.getWriter(), "Congratulations, you won!", '1');
         else write(player.getWriter(), "You lost!", '1');
         flush(player.getWriter());
