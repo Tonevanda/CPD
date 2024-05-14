@@ -5,6 +5,36 @@ import java.util.List;
 import java.util.Timer;
 
 public class Player{
+
+    //TIMER
+
+    private int _time = 0;
+    private int _previousTimerTime = 0;
+
+    private int _timerInterval;
+
+    private int _disconnectionTimeout;
+
+    private int _disconnectionTime;
+
+
+
+    private boolean _timedOut = false;
+
+    private int _connectionCheckInterval;
+
+    private int _connectionTimeout;
+
+    private int _connectionTime;
+
+    private boolean _isDisconnected = false;
+
+    private boolean _alreadyDisconnectedOnce = false;
+
+
+
+
+    //GAME
     private final String _name;
     private int _rank;
 
@@ -14,9 +44,6 @@ public class Player{
 
     private BufferedReader _reader;
 
-    private Timer _timer;
-
-    private MyTimerTask _timerTask;
 
     private String _serverState = "MENU";
 
@@ -50,18 +77,20 @@ public class Player{
 
     private boolean _isFighting = false;
 
-    public Player(String name, int rank, PrintWriter writer, BufferedReader reader, int timerInterval, int connectionCheckInterval, int connectionTimeout, int disconnectionTimeout){
+    public Player(String name, int rank, PrintWriter writer, BufferedReader reader, int timerInterval, int connectionCheckInterval, int connectionTimeout, int disconnectionTimeout, int currentTime){
         this._name = name;
         this._rank = rank;
         this._previousRank = rank;
         this._writer = writer;
         this._reader = reader;
-        this._timer = new Timer();
-        this._timerTask = new MyTimerTask(writer, connectionCheckInterval, connectionTimeout, disconnectionTimeout);
+        this._connectionCheckInterval = connectionCheckInterval;
+        this._connectionTimeout = connectionTimeout;
+        this._disconnectionTimeout = disconnectionTimeout;
+        this._timerInterval = timerInterval;
 
-        this._timerTask.setMode(0);
 
-        _timer.schedule(_timerTask, 0, timerInterval);
+        resetTimer(currentTime);
+        setTimer(0);
 
         resetPlayerGameInfo();
 
@@ -70,6 +99,73 @@ public class Player{
 
 
     }
+
+    //TIMER
+
+    public void setTimer(int time){this._time = time;}
+
+    public void setDisconnected(boolean isDisconnected){
+        this._isDisconnected = isDisconnected;
+    }
+
+    public void setAlreadyDisconnectedOnce(boolean alreadyDisconnectedOnce){this._alreadyDisconnectedOnce = alreadyDisconnectedOnce;}
+
+    public void resetConnectionTime(){this._connectionTime = this._connectionTimeout;}
+
+    public void resetTimer(int time){
+        this._previousTimerTime = time;
+        this._disconnectionTime = this._disconnectionTimeout;
+        this._connectionTime = this._connectionTimeout;
+        this._isDisconnected = false;
+        this._timedOut = false;
+    }
+
+
+
+
+
+    public boolean timeChanged(int currentTime) {
+        if(this._previousTimerTime >= currentTime+this._timerInterval || this._previousTimerTime+this._timerInterval <= currentTime){
+            this._previousTimerTime = currentTime;
+            this._time++;
+            this._time = this._time % 100000000;
+            if(this._isDisconnected && !this._timedOut) {
+                this._disconnectionTime--;
+                System.out.println("TIME OUT IS ON: ".concat(Integer.toString(this._disconnectionTime)));
+            }
+            else this._disconnectionTime = this._disconnectionTimeout;
+
+            if(this._disconnectionTime <= 0) {
+                this._timedOut = true;
+            }
+
+            return true;
+        }
+        return false;
+    }
+
+
+    public void ping() {
+        this._connectionTime--;
+        if(this._connectionTime <= 0){
+            this._isDisconnected = true;
+        }
+        if(!this._isDisconnected && !this._timedOut && this._time % this._connectionCheckInterval == 0){
+            this._writer.println("T");
+            this._writer.flush();
+        }
+    }
+
+    public int getTime(){return this._time;}
+
+    public boolean getDisconnected(){return this._isDisconnected;}
+
+    public boolean getTimedOut(){return this._timedOut;}
+
+    public boolean getAlreadyDisconnectedOnce(){return this._alreadyDisconnectedOnce;}
+
+
+    //GAME
 
     public void resetPlayerGameInfo(){
         this._health = 300;
@@ -114,7 +210,6 @@ public class Player{
 
     public BufferedReader getReader() { return this._reader; }
 
-    public MyTimerTask getTimerTask(){return this._timerTask;}
 
 
 
@@ -173,7 +268,6 @@ public class Player{
 
     public void setWriter(PrintWriter writer){
         this._writer = writer;
-        this.getTimerTask().setWriter(writer);
     }
 
     public void setGold(int gold){this._gold = gold;}
@@ -231,7 +325,6 @@ public class Player{
         this._originalArmor = armor;
     }
 
-    public void closeTimer(){this._timer.cancel();}
 
 
     public void resetStoreCards(){this.storeCards.clear();}

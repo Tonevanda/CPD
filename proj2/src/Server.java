@@ -42,6 +42,10 @@ public class Server extends Communication{
 
     private final int CONNECTION_CHECK_INTERVAL = 2;
 
+    private Timer timer = new Timer();
+
+    private MyTimerTask timerTask = new MyTimerTask();
+
 
     private final List<ReentrantLock> locks = new ArrayList<>();
 
@@ -83,7 +87,7 @@ public class Server extends Communication{
                         state = State.valueOf(player.getServerState());
                         if(state == State.QUEUE || state == State.GAME){
                             gamemode = 'i';
-                            player.getTimerTask().setMode(1);
+                            player.resetTimer(timerTask.getTime());
                         }
                     }
                     case MENU -> {
@@ -93,40 +97,35 @@ public class Server extends Communication{
                             this.currentAuths.remove(player.getName());
                             updateRank(player);
                         }
-                        else if(gamemode == 'a') {
+                        else if(gamemode == 'a' || gamemode == 'b') {
                             manageSimple();
                             state = State.QUEUE;
-                            player.getTimerTask().setMode(1);
-                            player.getTimerTask().setTimer(0);
-                        }
-                        else if(gamemode == 'b'){
-                            state = State.QUEUE;
-                            player.getTimerTask().setMode(1);
-                            player.getTimerTask().setTimer(0);
-
+                            player.resetTimer(this.timerTask.getTime());
+                            player.setTimer(0);
                         }
 
                     }
                     case QUEUE -> {
-                        if(isConnectionAlive(reader, player.getTimerTask().getDisconnected())){
-                            player.getTimerTask().resetConnectionTime();
-                        }
+
                         if (this.currentAuths.get(player.getName()).getInGame()) {
                             state = State.GAME;
                             player.setServerState("GAME");
-                            player.getTimerTask().setMode(1);
-                            player.getTimerTask().setTimer(0);
-                        } else if (player.getTimerTask().timeChanged()){
-                            write(player.getWriter(), CLEAR_SCREEN.concat("Waiting for game to start. ").concat(Integer.toString(player.getTimerTask().getTime()).concat(" seconds have passed")), '1');
+                            player.resetTimer(this.timerTask.getTime());
+                            player.setTimer(0);
+                        } else if (player.timeChanged(this.timerTask.getTime())){
+                            player.ping();
+                            write(player.getWriter(), CLEAR_SCREEN.concat("Waiting for game to start. ").concat(Integer.toString(player.getTime()).concat(" seconds have passed")), '1');
                             flush(player.getWriter());
+                        }
+                        if(isConnectionAlive(reader, player.getDisconnected())){
+                            player.resetConnectionTime();
                         }
                     }
                     case GAME -> {
-                        if(player.getTimerTask().getTimedOut()){
+                        if(player.getTimedOut()){
                             this.locks.getFirst().lock();
                             this.currentAuths.remove(player.getName());
                             this.locks.getFirst().unlock();
-                            player.closeTimer();
                             socket.close();
                             state = State.QUIT;
                             updateRank(player);
@@ -134,8 +133,7 @@ public class Server extends Communication{
                         }
                         else if (!this.currentAuths.get(player.getName()).getInGame()){
                             state = State.MENU;
-                            player.getTimerTask().setMode(0);
-                            player.getTimerTask().setTimer(0);
+                            player.resetTimer(this.timerTask.getTime());
                         }
 
                     }
@@ -144,13 +142,14 @@ public class Server extends Communication{
             }
         }catch(SocketException e){
             if(player != null){
-                player.getTimerTask().setDisconnected(true);
+                player.setDisconnected(true);
                 System.out.println("Client: ".concat(player.getName()).concat(" has disconnected"));
                 player.setServerState(state.toString());
 
-                while(player.getTimerTask().getDisconnected()){
+                while(player.getDisconnected()){
+                    player.timeChanged(timerTask.getTime());
                     System.out.print("");
-                    if(player.getTimerTask().getTimedOut()){
+                    if(player.getTimedOut()){
                         System.out.println("Client: ".concat(player.getName()).concat(" has timed out"));
                         this.locks.getFirst().lock();
                         this.currentAuths.remove(player.getName());
@@ -166,7 +165,6 @@ public class Server extends Communication{
                             this.locks.get(2).unlock();
                         }
 
-                        player.closeTimer();
                         socket.close();
                         updateRank(player);
                         break;
@@ -209,11 +207,10 @@ public class Server extends Communication{
             player = this.currentAuths.get(name);
             player.setReader(reader);
             player.setWriter(writer);
-            player.getTimerTask().setMode(0);
             manageSimple();
         }
         else {
-            player = new Player(name, rank, writer, reader, TIMER_INTERVAL, CONNECTION_CHECK_INTERVAL, CONNECTION_CHECK_TIMEOUT, DISCONNECT_TIMEOUT);
+            player = new Player(name, rank, writer, reader, TIMER_INTERVAL/1000, CONNECTION_CHECK_INTERVAL, CONNECTION_CHECK_TIMEOUT, DISCONNECT_TIMEOUT, this.timerTask.getTime());
             currentAuths.put(name, player);
         }
 
@@ -258,14 +255,18 @@ public class Server extends Communication{
                 this.gameStore.add(new Card(i));
             }
 
+
+            this.timer.schedule(this.timerTask, 0, TIMER_INTERVAL);
+
             Thread.startVirtualThread(()->{
-                Timer timer = new Timer();
-                MyTimerTask timerTask = new MyTimerTask(CONNECTION_CHECK_INTERVAL, CONNECTION_CHECK_TIMEOUT, DISCONNECT_TIMEOUT);
-                timerTask.setMode(0);
-                timer.schedule(timerTask, 0, RANK_QUEUE_TIMER_INTERVAL);
+
+
+                int previous_time = 0;
+
                 while(true){
                     System.out.print("");
-                    if(timerTask.timeChanged() && this.rankedPlayers.size() >= NUM_PLAYERS){
+                    if(timerTask.getTime() >= previous_time + RANK_QUEUE_TIMER_INTERVAL/1000|| timerTask.getTime()+RANK_QUEUE_TIMER_INTERVAL/1000 <= previous_time  && this.rankedPlayers.size() >= NUM_PLAYERS){
+                        previous_time = timerTask.getTime();
                         System.out.println("CHECK RANKED");
                         manageRanked();
                     }
@@ -309,7 +310,7 @@ public class Server extends Communication{
 
 
         for(int j = 0; j < this.rankedPlayers.size(); j++) {
-            this.rankedPlayers.sort((p1, p2) -> (p2.getTimerTask().getTime() - p1.getTimerTask().getTime()));
+            this.rankedPlayers.sort((p1, p2) -> (p2.getTime() - p1.getTime()));
             System.out.println("THE CURRENT RANKED PLAYERS LIST IS:");
             for(Player player : this.rankedPlayers){
                 System.out.println(player.getName().concat(": ").concat(Integer.toString(player.getRank())));
@@ -319,16 +320,16 @@ public class Server extends Communication{
             gamePlayers.add(player);
             this.rankedPlayers.remove(j);
 
-            if (!player.getTimerTask().getDisconnected()){
+            if (!player.getDisconnected()){
                 this.rankedPlayers.sort(Comparator.comparingInt(p ->
                         Math.abs(player.getRank() - p.getRank())
                 ));
                 for (int i = 0; i < NUM_PLAYERS-1; i++) {
                     Player p = this.rankedPlayers.getFirst();
                     int rankDistance = Math.abs(player.getRank() - p.getRank());
-                    if (p.getTimerTask().getDisconnected() ||
-                            rankDistance - player.getTimerTask().getTime() > 0 ||
-                            rankDistance - p.getTimerTask().getTime() > 0) {
+                    if (p.getDisconnected() ||
+                            rankDistance - player.getTime() > 0 ||
+                            rankDistance - p.getTime() > 0) {
                         break;
                     }
                     gamePlayers.add(p);
@@ -404,7 +405,7 @@ public class Server extends Communication{
                 this.currentAuths.get(player.getName()).setInGame(true);
             }
             Collections.shuffle(players);
-            Game game = new Game(players, this.gameStore, gamemode);
+            Game game = new Game(players, this.gameStore, gamemode, this.timerTask);
             try {
                 game.run();
 
@@ -454,7 +455,7 @@ public class Server extends Communication{
                 if(db.getJSONObject(i).getString("username").equals(name) && db.getJSONObject(i).getString("password").equals(password)){
                     if(currentAuths.containsKey(name)){
                         Player player = currentAuths.get(name);
-                        if(!player.getTimerTask().getTimedOut() && player.getTimerTask().getDisconnected()){
+                        if(!player.getTimedOut() && player.getDisconnected()){
                             write(writer, "Successfully authenticated!", player.getServerState().charAt(0));
                             flush(writer);
                             return player.getRank();
