@@ -5,6 +5,8 @@ public class Card {
 
     private int _width = 0;
 
+    private int MAX_WIDTH = 156;
+
 
 
 
@@ -30,7 +32,9 @@ public class Card {
         BOW,
         BRUSH,
         KNIFE,
-        BED
+        BED,
+        CHOCOLATE,
+        SHOPPING_CART
 
 
 
@@ -250,7 +254,20 @@ public class Card {
                 this._width = 33;
                 this._gold = 1;
                 this._isInstant = true;
-                power = "Bought: Heal 100";
+                Random random = new Random();
+                this._rand = Math.abs(random.nextInt()) % 3;
+                switch(this._rand){
+                    case 0 ->{
+                        power = "Bought: Heal 100";
+                    }
+                    case 1 -> {
+                        power = "Bought: Heal 126";
+                    }
+                    case 2 -> {
+                        power = "Bought: Heal 30% of Health";
+                    }
+                }
+
             }
             case BOOTS -> {
                 ascii = """
@@ -469,23 +486,52 @@ public class Card {
                         power = "Bought: +20 maxHealth";
                     }
                     case 1 ->{
-                        this._gold = 4;
+                        this._gold = 5;
                         power = "Bought: +50 maxHealth";
                     }
                     case 2 ->{
                         power = "Bought: +2 Strength";
                     }
                     case 3 ->{
-                        this._gold = 4;
+                        this._gold = 5;
                         power = "Bought: +4 Strength";
                     }
                     case 4 -> {
-                        this._gold = 4;
+                        this._gold = 5;
                         power = "Bought: +6 Speed";
                     }
                 }
 
 
+            }
+            case CHOCOLATE -> {
+                ascii = """
+                         _________,-.___
+                        |__      { {]_]
+                        |__`---.__\\ \\_]
+                        |  `---.___} }]_]_]
+                        |_________/ {_]_]_]
+                        \s
+                        \s""";
+                this._width = 20;
+                this._gold = 1;
+                power = "Sell: +10 MaxHealth";
+            }
+            case SHOPPING_CART -> {
+                ascii = """
+                         _        ,
+                        (_\\______/________
+                           \\-|-|/|-|-|-|-|/
+                            \\==/-|-|-|-|-/
+                             \\/|-|-|-|,-'
+                              \\--|-'''
+                               \\_j________
+                               (_)     (_)
+                         \n""";
+                this._width = 20;
+                this._gold = 5;
+                this._isInstant = true;
+                power = "Bought: Fill your hand with Chocolate Bars";
             }
         }
 
@@ -669,7 +715,18 @@ public class Card {
                 friendlyPlayer.setGold(friendlyPlayer.getGold()+3);
             }
             case BANDAID -> {
-                friendlyPlayer.setHealth(friendlyPlayer.getHealth()+100);
+                switch(this._rand){
+                    case 1 ->{
+                        friendlyPlayer.setHealth(friendlyPlayer.getHealth()+100);
+                    }
+                    case 2 ->{
+                        friendlyPlayer.setHealth(friendlyPlayer.getHealth()+126);
+                    }
+                    case 3 ->{
+                        friendlyPlayer.setHealth(friendlyPlayer.getHealth()+30*(friendlyPlayer.getMaxHealth()-friendlyPlayer.getHealth())/100);
+                    }
+                }
+
             }
             case BOOTS -> {
                 friendlyPlayer.setOriginalSpeed(friendlyPlayer.getOriginalSpeed()+20);
@@ -704,6 +761,11 @@ public class Card {
                     }
                 }
             }
+            case SHOPPING_CART -> {
+                while(friendlyPlayer.getHandWidth()+this._width <= MAX_WIDTH){
+                    friendlyPlayer.addHandCard(new Card(20));
+                }
+            }
         }
     }
 
@@ -711,6 +773,9 @@ public class Card {
         switch(this._type){
             case BOOTS -> {
                 friendlyPlayer.setOriginalSpeed(friendlyPlayer.getOriginalSpeed()-20);
+            }
+            case CHOCOLATE -> {
+                friendlyPlayer.setMaxHealth(friendlyPlayer.getMaxHealth()+10);
             }
         }
     }

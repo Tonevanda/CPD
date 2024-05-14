@@ -462,8 +462,6 @@ public class Game extends Communication{
                 storeIndex = 0;
                 if(player.getStoreCardsSize() == 3) break;
             }
-
-
         }
         player.reorderCardIndices();
 
