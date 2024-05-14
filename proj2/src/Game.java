@@ -141,6 +141,7 @@ public class Game extends Communication{
                     }
                 }
                 case FIGHT -> {
+                    System.out.print("");
                     if(timerTask.getTime() >= previous_time+TIMER_INTERVAL/1000 || timerTask.getTime()+TIMER_INTERVAL/1000 <= previous_time){
                         previous_time = timerTask.getTime();
                         time--;
@@ -478,8 +479,8 @@ public class Game extends Communication{
         String text = CLEAR_SCREEN;
         String player1info = player1.draw(true);
         String player2info = player2.draw(true);
-        String player1Cards = drawCards(player1.getHandCards(), true, true);
-        String player2Cards = drawCards(player2.getHandCards(), true, true);
+        String player1Cards = drawCards(player1, player1.getHandCards(), true, true);
+        String player2Cards = drawCards(player2, player2.getHandCards(), true, true);
         String timer = Integer.toString(time).concat("s");
         write(player1.getWriter(), text.concat(player2info).concat("         ").concat(timer).concat("\n").concat(player2Cards).concat(player1Cards).concat("\n").concat(" ").concat(player1info));
         write(player2.getWriter(), text.concat(player1info).concat("         ").concat(timer).concat("\n").concat(player1Cards).concat(player2Cards).concat("\n").concat(" ").concat(player2info));
@@ -494,8 +495,8 @@ public class Game extends Communication{
         for(Player p : this.players){
             text = text.concat(p.draw(false));
         }
-        text = text.concat("\n").concat(drawCards(player.getStoreCards(), hideIndex, false));
-        text = text.concat(drawCards(player.getHandCards(), hideIndex, false));
+        text = text.concat("\n").concat(drawCards(null, player.getStoreCards(), hideIndex, false));
+        text = text.concat(drawCards(player, player.getHandCards(), hideIndex, false));
         text = text.concat("\n").concat(player.draw(true));
 
         write(player.getWriter(), text);
@@ -503,15 +504,28 @@ public class Game extends Communication{
 
     }
 
-    public String drawCards(List<Card> cards, boolean hideIndex, boolean hideGold){
+    public String drawCards(Player player, List<Card> cards, boolean hideIndex, boolean hideGoldAndLocks){
         String text = "";
+        boolean emptyCards = true;
+        for(Card card : cards) {
+            if (card.getType() != 0 || !hideGoldAndLocks){
+                emptyCards = false;
+                break;
+            }
+        }
         for(int j = 0; j < CARD_HEIGHT; j++){
-            if(!cards.isEmpty()) {
+            if(!emptyCards && !cards.isEmpty()) {
                 text = text.concat(" ");
                 if (j == 0) text = text.concat(" ");
                 else text = text.concat("|");
                 for (Card card : cards) {
-                    text = text.concat(card.draw(j, CARD_HEIGHT, hideIndex, hideGold));
+                    if(!(hideGoldAndLocks && card.getType() == 0)) {
+                        int cooldownLinesCount = -1;
+                        if (player != null && card.getOrignalCooldown() > 0) {
+                            cooldownLinesCount = (CARD_HEIGHT-2)-(card.getCooldown()*(CARD_HEIGHT-2)/(card.getOrignalCooldown()-(player.getSpeed()+card.getSpeed())*card.getOrignalCooldown()/100))-(j-1);
+                        }
+                        text = text.concat(card.draw(j, CARD_HEIGHT, cooldownLinesCount, hideIndex, hideGoldAndLocks));
+                    }
                 }
             }
             text = text.concat("\n");

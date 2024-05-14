@@ -416,17 +416,31 @@ public class Player{
 
     public String draw(boolean showStats){
         String text = "";
-        text = text.concat("     |").concat(_name);
-        text = text.concat(" #").concat(Integer.toString(_rank));
-        text = text.concat(" +").concat(Integer.toString(_health));
-        if(showStats) text = text.concat("[").concat(Integer.toString(_armor)).concat("]");
-        text = text.concat("/").concat(Integer.toString(_maxHealth));
-        if(showStats){
-            text = text.concat(" $").concat(Integer.toString(_gold));
-            text = text.concat(" »").concat(Integer.toString(_speed));
-            text = text.concat(" §").concat(Integer.toString(_strength));
+        text = text.concat(" |").concat(_name);
+        if(!showStats){
+            text = text.concat(" #").concat(Integer.toString(_rank));
+            text = text.concat(" +").concat(Integer.toString(_health));
         }
-        text = text.concat("|");
+        if(showStats){
+            if(!_isFighting)text = text.concat(" $").concat(Integer.toString(_gold));
+            if(_speed > 0)text = text.concat(" Speed: ").concat(Integer.toString(_speed));
+            if(_strength > 0)text = text.concat(" Strength: ").concat(Integer.toString(_strength));
+            text = text.concat(" Health: ").concat(Integer.toString(_health));
+            if(!_isFighting)text = text.concat("/").concat(Integer.toString(_maxHealth));
+            if(_armor > 0) text = text.concat("+").concat(Integer.toString(_armor));
+
+            text = text.concat(" ");
+            for(int i = 0; i < this._health; i+=3){
+                text = text.concat("x");
+            }
+            for(int i = 0; i < this._armor; i+=3){
+                text = text.concat("O");
+            }
+            for(int i = 0; i < this._maxHealth-this._health-this._armor;i+=3){
+                text = text.concat("-");
+            }
+        }
+        text = text.concat(" |");
         return text;
     }
 

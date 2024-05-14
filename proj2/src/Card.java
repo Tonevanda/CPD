@@ -86,9 +86,11 @@ public class Card {
                         ||| ::/  \\:: ;
                         ||; ::\\__/:: ;
                          \\\\\\ '::::' /
-                          `=':-..-'`""";
+                          `=':-..-'`
+                         \n""";
                 this._width = 15;
                 this._gold = 6;
+                power = "Pay this card's cost to get rid of it";
             }
             case SWORD -> {
                 ascii = """
@@ -746,10 +748,11 @@ public class Card {
 
 
 
-    public String draw(int row, int height, boolean hideIndex, boolean hideGold){
+    public String draw(int row, int height, int cooldownLinesCount, boolean hideIndex, boolean hideGold){
         String cooldown = Integer.toString(this._cooldown);
         String gold = Integer.toString(this._gold);
         String index = Integer.toString(this._index);
+
         String text = "";
         int startingIndex = 1;
 
@@ -762,24 +765,43 @@ public class Card {
         else{
 
             if(row == 1){
-                if(!hideGold || this._gold == 0){
-                    text = text.concat(gold).concat("$ ");
-                    startingIndex += gold.length()+2;
+                if(cooldownLinesCount > 0){
+                    text = text.concat(drawCooldownLines());
+                    startingIndex = this._width;
                 }
-                if(this._originalCooldown >= 0) {
-                    text = text.concat(cooldown).concat("s");
-                    startingIndex += cooldown.length()+1;
+                else {
+                    if (!hideGold || this._gold == 0) {
+                        text = text.concat(gold).concat("$ ");
+                        startingIndex += gold.length() + 2;
+                    }
+                    if (this._originalCooldown >= 0) {
+                        text = text.concat(cooldown).concat("s");
+                        startingIndex += cooldown.length() + 1;
+                    }
                 }
 
 
             }
             else if(row-2 <this._art.size()){
-                text = text.concat(this._art.get(row-2));
-                startingIndex += this._art.get(row-2).length();
+                if(cooldownLinesCount > 0){
+                    text = text.concat(drawCooldownLines());
+                    startingIndex = this._width;
+                }
+                else {
+                    text = text.concat(this._art.get(row - 2));
+                    startingIndex += this._art.get(row - 2).length();
+                }
             }
             else if(row-2-this._art.size() < this._description.size()){
-                text = text.concat(this._description.get(row-2-this._art.size()));
-                startingIndex += this._description.get(row-2-this._art.size()).length();
+                if(cooldownLinesCount > 0){
+                    text = text.concat(drawCooldownLines());
+                    startingIndex = this._width;
+                }
+                else{
+                    text = text.concat(this._description.get(row-2-this._art.size()));
+                    startingIndex += this._description.get(row-2-this._art.size()).length();
+                }
+
             }
 
             for (int i = startingIndex; i < this._width; i++) {
@@ -793,6 +815,14 @@ public class Card {
             text = text.concat("|");
         }
 
+        return text;
+    }
+
+    public String drawCooldownLines(){
+        String text = "";
+        for(int i = 1; i < this._width; i++){
+            text = text.concat("-");
+        }
         return text;
     }
 }

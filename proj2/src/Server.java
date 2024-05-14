@@ -267,7 +267,6 @@ public class Server extends Communication{
                     System.out.print("");
                     if(timerTask.getTime() >= previous_time + RANK_QUEUE_TIMER_INTERVAL/1000|| timerTask.getTime()+RANK_QUEUE_TIMER_INTERVAL/1000 <= previous_time  && this.rankedPlayers.size() >= NUM_PLAYERS){
                         previous_time = timerTask.getTime();
-                        System.out.println("CHECK RANKED");
                         manageRanked();
                     }
                 }
