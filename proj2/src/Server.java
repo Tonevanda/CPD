@@ -2,8 +2,8 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.util.*;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -13,6 +13,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import javax.net.ssl.*;
 
 
 /**
@@ -66,7 +68,7 @@ public class Server extends Communication{
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnrecoverableKeyException, CertificateException, KeyStoreException, IOException, NoSuchAlgorithmException, KeyManagementException {
         Server server = new Server(3);
         server.startServer();
     }
@@ -243,8 +245,22 @@ public class Server extends Communication{
 
     }
 
-    private void startServer(){
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
+    private void startServer() throws KeyStoreException, IOException, UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException, KeyManagementException {
+        // Load server KeyStore
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        keyStore.load(new FileInputStream("src/serverkeystore.jks"), "password".toCharArray());
+
+        // Initialize KeyManagerFactory with the KeyStore
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(keyStore, "password".toCharArray());
+
+        // Initialize SSLContext
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagerFactory.getKeyManagers(), null, null);
+
+        // Create SSLServerSocketFactory and SSLServerSocket
+        SSLServerSocketFactory serverSocketFactory = sslContext.getServerSocketFactory();
+        try (SSLServerSocket serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(port)) {
 
             System.out.println("Server is listening on port " + port);
 
@@ -269,7 +285,7 @@ public class Server extends Communication{
             });
 
             while (true) {
-                Socket socket = serverSocket.accept();
+                SSLSocket socket = (SSLSocket) serverSocket.accept();
 
                 InputStream input = socket.getInputStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(input));
