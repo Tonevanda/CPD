@@ -91,6 +91,10 @@ public class Server extends Communication{
                             gamemode = 'i';
                             player.resetTimer(timerTask.getTime());
                         }
+
+                        else if(state != State.MENU){
+                            socket.setSoTimeout(10);
+                        }
                     }
                     case MENU -> {
                         gamemode = handleMenu(reader, writer, player);
@@ -100,7 +104,7 @@ public class Server extends Communication{
                             updateRank(player);
                         }
                         else if(gamemode == 'a' || gamemode == 'b') {
-                            manageSimple();
+                            if(gamemode == 'a')manageSimple();
                             state = State.QUEUE;
                             socket.setSoTimeout(10);
                             player.resetTimer(this.timerTask.getTime());
@@ -113,7 +117,7 @@ public class Server extends Communication{
                         if (this.currentAuths.get(player.getName()).getInGame()) {
                             state = State.GAME;
                             player.setServerState("GAME");
-                            socket.setSoTimeout(100);
+                            socket.setSoTimeout(10);
                             player.resetTimer(this.timerTask.getTime());
                             player.setTimer(0);
                         } else if (player.timeChanged(this.timerTask.getTime())){
@@ -130,6 +134,7 @@ public class Server extends Communication{
                         }
                         else if (!this.currentAuths.get(player.getName()).getInGame()){
                             state = State.MENU;
+                            socket.setSoTimeout(0);
                             player.resetTimer(this.timerTask.getTime());
                         }
 
@@ -450,6 +455,9 @@ public class Server extends Communication{
                     if(currentAuths.containsKey(name)){
                         Player player = currentAuths.get(name);
                         if(!player.getTimedOut() && player.getDisconnected()){
+                            if((!player.getInGame() && State.valueOf(player.getServerState()) == State.GAME) || (player.getInGame() && State.valueOf(player.getServerState()) == State.QUEUE)){
+                                player.setServerState(State.MENU.toString());
+                            }
                             write(writer, "Successfully authenticated!", player.getServerState().charAt(0));
                             flush(writer);
                             return player.getRank();

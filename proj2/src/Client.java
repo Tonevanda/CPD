@@ -52,7 +52,7 @@ public class Client extends Communication{
 
         // Load client TrustStore
         KeyStore trustStore = KeyStore.getInstance("JKS");
-        trustStore.load(new FileInputStream("certificates/servertruststore.jks"), "password".toCharArray());
+        trustStore.load(new FileInputStream("../certificates/servertruststore.jks"), "password".toCharArray());
 
         // Initialize TrustManagerFactory with the TrustStore
         TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
@@ -66,7 +66,7 @@ public class Client extends Communication{
         SSLSocketFactory socketFactory = sslContext.getSocketFactory();
 
         try (SSLSocket socket = (SSLSocket) socketFactory.createSocket(hostname, port)) {
-
+            socket.setSoTimeout(0);
             // Write information to server
             OutputStream output = socket.getOutputStream();
             PrintWriter writer = new PrintWriter(output, true);
@@ -136,6 +136,7 @@ public class Client extends Communication{
                             else if(response.getFirst().equals("1")){
                                 System.out.println(response.getLast());
                                 gameResponse.clear();
+                                socket.setSoTimeout(0);
                                 state = State.MENU;
                                 System.out.println(read(reader).getLast());
                                 System.out.println(read(reader).getLast());
@@ -148,7 +149,7 @@ public class Client extends Communication{
                         }
                         if(!gameResponse.isEmpty()){
 
-                            if(scanner.hasNext()){
+                            if(terminalReader.ready()){
                                 write(writer, scanner.nextLine());
                                 gameResponse.clear();
                             }
