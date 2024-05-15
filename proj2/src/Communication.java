@@ -1,7 +1,10 @@
+import javax.net.ssl.SSLException;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,9 +16,6 @@ public abstract class Communication {
 
     protected final char NO_ENCODE = 'N';
 
-    protected final char TIMER_ENCODE = 'T';
-
-    protected final char ALIVE_ENCODE = 'A';
 
 
     public void write(PrintWriter writer, String text, char encoding){ writer.println(encoding + text);}
@@ -51,24 +51,20 @@ public abstract class Communication {
         }
     }
 
-    public List<String> read(BufferedReader reader, PrintWriter writer) throws IOException {
+
+
+    public List<String> readNonBlocking(BufferedReader reader) throws IOException {
         try {
-            List<String> res = new ArrayList<>();
             String response = reader.readLine();
+
             if(response == null) throw new SocketException();
+            List<String> res = new ArrayList<>();
             if(response.isEmpty()){
                 res.add(Character.toString(NO_ENCODE));
                 res.add("");
             }
-            else if(response.charAt(0) == TIMER_ENCODE){
-                write(writer, "", ALIVE_ENCODE);
-                return read(reader, writer);
-            }
-            else if(response.charAt(0) == ALIVE_ENCODE){
-                return read(reader, writer);
-            }
             else if(response.length() == 1){
-                res.add(Character.toString(NO_ENCODE));
+                res.add(Character.toString(response.charAt(0)));
                 res.add("");
             }
             else{
@@ -76,21 +72,10 @@ public abstract class Communication {
                 res.add(response.substring(1));
             }
             return res;
-        }catch(SocketException e){
-            throw e;
+        } catch(SocketTimeoutException e){
+            return null;
         }
-    }
 
-    public boolean isConnectionAlive(BufferedReader reader, boolean hasTimedOut) throws IOException {
-        try {
-            if (reader.ready() || hasTimedOut) {
-                reader.readLine();
-                return true;
-            }
-            return false;
-        }catch(SocketException e){
-            throw e;
-        }
     }
 
     public void broadcast(String text, char encoding){

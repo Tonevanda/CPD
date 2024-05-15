@@ -84,7 +84,10 @@ public class Server extends Communication{
                     case AUTHENTICATION -> {
                         player = handleAuthentication(reader, writer);
                         state = State.valueOf(player.getServerState());
-                        if(state == State.QUEUE || state == State.GAME){
+                        if(state == State.QUEUE || state == State.GAME || state == State.MENU){
+                            if(state == State.QUEUE || state == State.GAME){
+                                socket.setSoTimeout(10);
+                            }
                             gamemode = 'i';
                             player.resetTimer(timerTask.getTime());
                         }
@@ -99,6 +102,7 @@ public class Server extends Communication{
                         else if(gamemode == 'a' || gamemode == 'b') {
                             manageSimple();
                             state = State.QUEUE;
+                            socket.setSoTimeout(10);
                             player.resetTimer(this.timerTask.getTime());
                             player.setTimer(0);
                         }
@@ -109,26 +113,20 @@ public class Server extends Communication{
                         if (this.currentAuths.get(player.getName()).getInGame()) {
                             state = State.GAME;
                             player.setServerState("GAME");
+                            socket.setSoTimeout(100);
                             player.resetTimer(this.timerTask.getTime());
                             player.setTimer(0);
                         } else if (player.timeChanged(this.timerTask.getTime())){
-                            player.ping();
                             write(player.getWriter(), CLEAR_SCREEN.concat("Waiting for game to start. ").concat(Integer.toString(player.getTime()).concat(" seconds have passed")), '1');
                             flush(player.getWriter());
                         }
-                        if(isConnectionAlive(reader, player.getDisconnected())){
+                        if(readNonBlocking(reader) != null){
                             player.resetConnectionTime();
                         }
                     }
                     case GAME -> {
-                        if(player.getTimedOut()){
-                            this.locks.getFirst().lock();
-                            this.currentAuths.remove(player.getName());
-                            this.locks.getFirst().unlock();
-                            socket.close();
-                            state = State.QUIT;
-                            updateRank(player);
-
+                        if(player.getDisconnected()){
+                            throw new SocketException();
                         }
                         else if (!this.currentAuths.get(player.getName()).getInGame()){
                             state = State.MENU;
@@ -192,8 +190,8 @@ public class Server extends Communication{
         String name = "";
         try {
             while (rank == -1) {
-                name = read(reader, writer).getLast();
-                String password = read(reader, writer).getLast();
+                name = read(reader).getLast();
+                String password = read(reader).getLast();
                 rank = authenticateClient(name, password, writer);
             }
         }catch(SocketException e){
@@ -228,7 +226,7 @@ public class Server extends Communication{
         flush(writer);
         String response;
         try{
-            response = read(reader, writer).getLast().toLowerCase();
+            response = read(reader).getLast().toLowerCase();
         }catch(SocketException e){
             throw e;
         }
@@ -261,9 +259,7 @@ public class Server extends Communication{
         // Create SSLServerSocketFactory and SSLServerSocket
         SSLServerSocketFactory serverSocketFactory = sslContext.getServerSocketFactory();
         try (SSLServerSocket serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(port)) {
-
             System.out.println("Server is listening on port " + port);
-
             for(int i = 1; i <= Card.getCardsCount() - 1; i++){
                 this.gameStore.add(new Card(i));
             }

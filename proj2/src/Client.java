@@ -52,7 +52,7 @@ public class Client extends Communication{
 
         // Load client TrustStore
         KeyStore trustStore = KeyStore.getInstance("JKS");
-        trustStore.load(new FileInputStream("src/servertruststore.jks"), "password".toCharArray());
+        trustStore.load(new FileInputStream("servertruststore.jks"), "password".toCharArray());
 
         // Initialize TrustManagerFactory with the TrustStore
         TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
@@ -79,28 +79,28 @@ public class Client extends Communication{
             Scanner scanner = new Scanner(System.in);
 
             List<String> gameResponse = new ArrayList<>();
-
             while(state != State.QUIT) {
                 switch (state) {
                     case AUTHENTICATION -> {
                         ArrayList<String> credentials = getCredentials(scanner, terminalReader);
                         write(writer, credentials.getFirst());
                         write(writer, credentials.getLast());
-                        List<String> response = read(reader, writer);
+                        List<String> response = read(reader);
                         System.out.println("Response: " + response);
                         System.out.println(response.getLast());
 
                         if(response.getFirst().equals("0") || response.getFirst().equals("M")) {
                             state = State.MENU;
-                            System.out.println(read(reader, writer).getLast());
-                            System.out.println(read(reader, writer).getLast());
-                            System.out.println(read(reader, writer).getLast());
+                            System.out.println(read(reader).getLast());
+                            System.out.println(read(reader).getLast());
+                            System.out.println(read(reader).getLast());
                         }
                         else if(response.getFirst().equals("Q")){
                             state = State.QUEUE;
 
                         }
                         else if(response.getFirst().equals("G")){
+                            socket.setSoTimeout(10);
                             state = State.GAME;
                         }
                     }
@@ -116,22 +116,20 @@ public class Client extends Communication{
                         else System.out.println("Invalid input! Please Submit A, B or Q.");
                     }
                     case QUEUE -> {
-                        List<String> response = read(reader, writer);
+                        List<String> response = read(reader);
                         System.out.println("Response: " + response);
                         System.out.println(response.getLast());
                         if(response.getFirst().equals("0")){
                             state = State.GAME;
+                            socket.setSoTimeout(10);
                         }
                     }
                     case GAME -> {
                         System.out.print("");
-                        if(reader.ready()){
-                            List<String> response = read(reader);
-                            System.out.println("Response: " + response);
-                            if(response.getFirst().equals(Character.toString(TIMER_ENCODE))){
-                                write(writer, "", ALIVE_ENCODE);
-                            }
-                            else if(response.getFirst().equals("0")){
+
+                        List<String> response = readNonBlocking(reader);
+                        if(response != null){
+                            if(response.getFirst().equals("0")){
                                 gameResponse = response;
                                 System.out.println(response.getLast());
                             }
@@ -139,9 +137,9 @@ public class Client extends Communication{
                                 System.out.println(response.getLast());
                                 gameResponse.clear();
                                 state = State.MENU;
-                                System.out.println(read(reader, writer).getLast());
-                                System.out.println(read(reader, writer).getLast());
-                                System.out.println(read(reader, writer).getLast());
+                                System.out.println(read(reader).getLast());
+                                System.out.println(read(reader).getLast());
+                                System.out.println(read(reader).getLast());
                             }
                             else{
                                 System.out.println(response.getLast());
@@ -150,7 +148,7 @@ public class Client extends Communication{
                         }
                         if(!gameResponse.isEmpty()){
 
-                            if(terminalReader.ready()){
+                            if(scanner.hasNext()){
                                 write(writer, scanner.nextLine());
                                 gameResponse.clear();
                             }

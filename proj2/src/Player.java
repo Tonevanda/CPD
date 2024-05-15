@@ -129,16 +129,7 @@ public class Player{
         return false;
     }
 
-    public void ping() {
-        this._connectionTime--;
-        if(this._connectionTime <= 0){
-            this._isDisconnected = true;
-        }
-        if(!this._isDisconnected && !this._timedOut && this._time % this._connectionCheckInterval == 0){
-            this._writer.println("T");
-            this._writer.flush();
-        }
-    }
+
 
     public int getTime(){return this._time;}
 
