@@ -73,6 +73,8 @@ public class Player{
 
     private int _armor = 0;
 
+    private int _armorBuffing = 0;
+
     private boolean _inGame = false;
 
     private boolean _isFighting = false;
@@ -231,6 +233,8 @@ public class Player{
 
     public int getStrength(){return this._strength;}
 
+    public int getArmorBuffing(){return this._armorBuffing;}
+
     public int getOriginalStrength(){return this._originalStrength;}
     public int getHealth(){return this._health;}
 
@@ -302,6 +306,8 @@ public class Player{
     }
 
     public void setHealth(int health){this._health = Math.min(health, this._maxHealth);}
+
+    public void setArmorBuffing(int armorBuff){this._armorBuffing = armorBuff;}
 
     public void setMaxHealth(int health){
         this._maxHealth = Math.max(1, health);
@@ -382,6 +388,9 @@ public class Player{
             card.setDamage(card.getOriginalDamage()+this._originalStrength);
             card.setCooldown(card.getOrignalCooldown()-(this._originalSpeed+card.getSpeed())*card.getOrignalCooldown()/100);
             card.setIndex(cardIndice);
+            if(card.getArmor() >= 0){
+                card.setArmor(card.getOrignalArmor()+this._armorBuffing);
+            }
             cardIndice++;
         }
 

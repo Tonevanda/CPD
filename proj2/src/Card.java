@@ -22,7 +22,7 @@ public class Card {
         CASTLE,
         COIN,
         BANDAID,
-        BOOTS,
+        SHOES,
         SHOVEL,
         FENCE,
         TEDDY,
@@ -34,7 +34,10 @@ public class Card {
         KNIFE,
         BED,
         CHOCOLATE,
-        SHOPPING_CART
+        SHOPPING_CART,
+        SYRINGE,
+        BOOTS
+
 
 
 
@@ -61,8 +64,8 @@ public class Card {
     private int _damage = 0;
 
 
-    private int _originalArmor = 0;
-    private int _armor = 0;
+    private int _originalArmor = -1;
+    private int _armor = -1;
 
     private int _speed = 0;
 
@@ -269,7 +272,7 @@ public class Card {
                 }
 
             }
-            case BOOTS -> {
+            case SHOES -> {
                 ascii = """
                                       _    _
                                      (_\\__/(,_
@@ -533,6 +536,40 @@ public class Card {
                 this._isInstant = true;
                 power = "Bought: Fill your hand with Chocolate Bars";
             }
+            case SYRINGE -> {
+                ascii = """
+
+                        \s
+                        \s
+                        .     |____________________
+                        |-----|- - -|''''|''''|'##\\|__
+                        |- -  |  cc 3    2    1 ### __]==--------------
+                        |-----|_________________##/|
+                        '     |""\"""\"""\"""\"""\"""\"""`
+                        \s
+                        \s
+                        """;
+
+                this._width = 48;
+                this._gold = 6;
+                this._cooldown = 11;
+                power = "Heal 12. Advance 2s per ability triggered";
+            }
+            case BOOTS -> {
+                ascii = "       ________\n"+
+                        "    __(_____  <|\n" +
+                        "   (____ / <| <|\n" +
+                        "   (___ /  <| L`-------.\n" +
+                        "   (__ /   L`--------.  \\\n" +
+                        "   /  `.    ^^^^^ |   \\  |\n" +
+                        "  |     \\---------'    |/\n" +
+                        "  |______|____________/]\n" +
+                        "  [_____|`-.__________]\n \n";
+
+                this._width = 27;
+                this._gold = 5;
+                power = "Bought: +20 Armor. +8 extra Armor per armor gaining ability";
+            }
         }
 
         fillArt(ascii);
@@ -592,9 +629,13 @@ public class Card {
 
     public int getSpeed(){return this._speed;}
 
+    public int getArmor(){return this._armor;}
+
     public int getCooldown(){return this._cooldown;}
 
     public int getOrignalCooldown(){return this._originalCooldown;}
+
+    public int getOrignalArmor(){return this._originalArmor;}
 
 
     public int getOriginalDamage(){return this._originalDamage;}
@@ -639,7 +680,11 @@ public class Card {
         switch(this._type){
             case TEDDY -> {
                 this._description.clear();
-                fillDescription(Integer.toString(this._armor).concat(" Armor. +1 Armor per ability triggered"));
+                fillDescription("+".concat(Integer.toString(this._armor)).concat(" Armor. +1 Armor per ability triggered"));
+            }
+            case FENCE -> {
+                this._description.clear();
+                fillDescription("+".concat(Integer.toString(this._armor)).concat(" Armor. Bought: +10 Armor"));
             }
         }
     }
@@ -668,12 +713,15 @@ public class Card {
                     enemyPlayer.takeDamage(this._damage);
                     setDamage(this._damage*2);
                 }
+                case SYRINGE -> {
+                    friendlyPlayer.setHealth(friendlyPlayer.getHealth()+12);
+                }
             }
-            if(this._originalCooldown > 0) {
+            if(this._originalCooldown > 0 && cardIndex != -1) {
                 for (int i = 0; i < friendlyPlayer.getHandCardsCount(); i++) {
                     if(i != cardIndex) {
                         Card card = friendlyPlayer.getHandCard(i);
-                        card.triggerAfterItemTriggersEffect();
+                        card.triggerAfterItemTriggersEffect(friendlyPlayer, enemyPlayer);
                     }
                 }
             }
@@ -728,11 +776,11 @@ public class Card {
                 }
 
             }
-            case BOOTS -> {
+            case SHOES -> {
                 friendlyPlayer.setOriginalSpeed(friendlyPlayer.getOriginalSpeed()+20);
             }
             case FENCE -> {
-                friendlyPlayer.setOriginalArmor(friendlyPlayer.getArmor()+this._armor);
+                friendlyPlayer.setOriginalArmor(friendlyPlayer.getOriginalArmor()+this._armor);
             }
             case SCROLL -> {
                 friendlyPlayer.setMaxHealth(friendlyPlayer.getMaxHealth()-42);
@@ -766,21 +814,29 @@ public class Card {
                     friendlyPlayer.addHandCard(new Card(20));
                 }
             }
+            case BOOTS -> {
+                friendlyPlayer.setOriginalArmor(friendlyPlayer.getOriginalArmor()+20);
+                friendlyPlayer.setArmorBuffing(8);
+
+            }
         }
     }
 
     public void triggerOnSellEffect(Player friendlyPlayer){
         switch(this._type){
-            case BOOTS -> {
+            case SHOES -> {
                 friendlyPlayer.setOriginalSpeed(friendlyPlayer.getOriginalSpeed()-20);
             }
             case CHOCOLATE -> {
                 friendlyPlayer.setMaxHealth(friendlyPlayer.getMaxHealth()+10);
             }
+            case BOOTS -> {
+                friendlyPlayer.setArmorBuffing(friendlyPlayer.getArmorBuffing()-8);
+            }
         }
     }
 
-    public void triggerAfterItemTriggersEffect(){
+    public void triggerAfterItemTriggersEffect(Player friendlyPlayer, Player enemyPlayer){
         switch(this._type){
             case TEDDY -> {
                 setArmor(this._armor+1);
@@ -788,6 +844,12 @@ public class Card {
             case KNIFE -> {
                 setDamage(this._damage+2);
                 setCooldown(this._cooldown-3);
+            }
+            case SYRINGE -> {
+                this._cooldown -= 2;
+                if(this._cooldown <= 0) {
+                    triggerCooldownEffect(friendlyPlayer, enemyPlayer, -1);
+                }
             }
         }
     }
@@ -869,13 +931,19 @@ public class Card {
 
             }
 
-            for (int i = startingIndex; i < this._width; i++) {
-                if(row == 1 && i == this._width-2-index.length() && !hideIndex){
-                    text = text.concat("(").concat(index).concat(")");
-                    break;
+
+            if(cooldownLinesCount > 0 && row-2-this._art.size()-this._description.size() > 0){
+                text = text.concat(drawCooldownLines());
+            }
+            else {
+                for (int i = startingIndex; i < this._width; i++) {
+                    if (row == 1 && i == this._width - 2 - index.length() && !hideIndex) {
+                        text = text.concat("(").concat(index).concat(")");
+                        break;
+                    }
+                    if (row == height - 1) text = text.concat("_");
+                    else text = text.concat(" ");
                 }
-                if(row == height - 1) text = text.concat("_");
-                else text = text.concat(" ");
             }
             text = text.concat("|");
         }
