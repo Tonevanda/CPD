@@ -246,7 +246,7 @@ public class Server extends Communication{
     private void startServer() throws KeyStoreException, IOException, UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException, KeyManagementException {
         // Load server KeyStore
         KeyStore keyStore = KeyStore.getInstance("JKS");
-        keyStore.load(new FileInputStream("src/serverkeystore.jks"), "password".toCharArray());
+        keyStore.load(new FileInputStream("certificates/serverkeystore.jks"), "password".toCharArray());
 
         // Initialize KeyManagerFactory with the KeyStore
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
