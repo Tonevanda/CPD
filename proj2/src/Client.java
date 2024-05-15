@@ -52,7 +52,7 @@ public class Client extends Communication{
 
         // Load client TrustStore
         KeyStore trustStore = KeyStore.getInstance("JKS");
-        trustStore.load(new FileInputStream("src/servertruststore.jks"), "password".toCharArray());
+        trustStore.load(new FileInputStream("certificates/servertruststore.jks"), "password".toCharArray());
 
         // Initialize TrustManagerFactory with the TrustStore
         TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
