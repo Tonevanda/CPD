@@ -124,6 +124,7 @@ public class Server extends Communication{
                         readNonBlocking(player.getReader());
                     }
                     case GAME -> {
+                        System.out.print("");
                         if(player.getDisconnected()){
                             throw new SocketException();
                         }

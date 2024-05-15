@@ -91,6 +91,7 @@ public class Game extends Communication{
                         Player player = this.players.get(i);
                         if(player.getTimedOut()){
                             leaveGame(player);
+                            i--;
                             continue;
                         }
                         if(!player.getDisconnected() && player.getAlreadyDisconnectedOnce())
@@ -101,7 +102,7 @@ public class Game extends Communication{
                             storeHandler(player, move);
                         }
 
-                        if(this.finishedStatePlayersCount >= this.players.size()) {
+                        if(this.finishedStatePlayersCount >= this.players.size() && this.players.size() > 1) {
                             time = FIGHT_TIMEOUT;
                             previous_time = timerTask.getTime();
                             this.finishedStatePlayersCount = 0;
@@ -137,7 +138,10 @@ public class Game extends Communication{
                             if(nonPlayingPlayer.timeChanged(this.timerTask.getTime()))getInputAndVerifyConnection(nonPlayingPlayer);
                             if(!nonPlayingPlayer.getDisconnected() && nonPlayingPlayer.getAlreadyDisconnectedOnce())
                                 reconnectPlayer(nonPlayingPlayer);
-                            getInputAndVerifyConnection(nonPlayingPlayer);
+                            if(nonPlayingPlayer.getTimedOut()){
+                                leaveGame(nonPlayingPlayer);
+                                nonPlayingPlayer = null;
+                            }
                         }
                         fightHandler(time);
 
@@ -204,14 +208,14 @@ public class Game extends Communication{
         }
     }
 
-    public void reconnectFight(Player player1, Player player2) throws IOException {
+    public void reconnectFight(Player player1, Player player2){
         if(!player1.getDisconnected() && player1.getAlreadyDisconnectedOnce())
             reconnectPlayer(player1);
         if(!player2.getDisconnected() && player2.getAlreadyDisconnectedOnce())
             reconnectPlayer(player2);
 
-        getInputAndVerifyConnection(player1);
-        getInputAndVerifyConnection(player2);
+
+
     }
 
     public void storeHandler(Player currentPlayer, String userInput){
@@ -454,10 +458,22 @@ public class Game extends Communication{
         String player1Cards = drawCards(player1, player1.getHandCards(), true, true);
         String player2Cards = drawCards(player2, player2.getHandCards(), true, true);
         String timer = Integer.toString(time).concat("s");
-        write(player1.getWriter(), text.concat(player2info).concat("         ").concat(timer).concat("\n").concat(player2Cards).concat(player1Cards).concat("\n").concat(" ").concat(player1info));
-        write(player2.getWriter(), text.concat(player1info).concat("         ").concat(timer).concat("\n").concat(player1Cards).concat(player2Cards).concat("\n").concat(" ").concat(player2info));
-        flush(player1.getWriter());
-        flush(player2.getWriter());
+        if(!player1.getTimedOut()) {
+            write(player1.getWriter(), text.concat(player2info).concat("         ").concat(timer).concat("\n").concat(player2Cards).concat(player1Cards).concat("\n").concat(" ").concat(player1info));
+            flush(player1.getWriter());
+        }
+        else if(player1.getInGame()){
+            player1.setInGame(false);
+            leaveGame(player1);
+        }
+        if(!player2.getTimedOut()) {
+            write(player2.getWriter(), text.concat(player1info).concat("         ").concat(timer).concat("\n").concat(player1Cards).concat(player2Cards).concat("\n").concat(" ").concat(player2info));
+            flush(player2.getWriter());
+        }
+        else if(player2.getInGame()){
+            player2.setInGame(false);
+            leaveGame(player2);
+        }
 
     }
     public void drawStoreState(Player player, boolean hideIndex){

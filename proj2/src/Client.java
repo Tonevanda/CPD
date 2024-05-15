@@ -86,7 +86,6 @@ public class Client extends Communication{
                         write(writer, credentials.getFirst());
                         write(writer, credentials.getLast());
                         List<String> response = read(reader);
-                        System.out.println("Response: " + response);
                         System.out.println(response.getLast());
 
                         if(response.getFirst().equals("0") || response.getFirst().equals("M")) {
@@ -141,6 +140,7 @@ public class Client extends Communication{
                                 System.out.println(read(reader).getLast());
                                 System.out.println(read(reader).getLast());
                                 System.out.println(read(reader).getLast());
+                                break;
                             }
                             else{
                                 System.out.println(response.getLast());
