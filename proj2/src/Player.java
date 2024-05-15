@@ -196,7 +196,10 @@ public class Player{
 
     public Card getStoreCard(int cardIndice){return this.storeCards.get(cardIndice);}
 
-    public Card getHandCard(int cardIndice){return this.hand.get(cardIndice);}
+    public Card getHandCard(int cardIndice){
+        if(cardIndice < 0 || cardIndice >= getHandCardsCount()) return null;
+        return this.hand.get(cardIndice);
+    }
 
     public int getHandWidth(){return this._handWidth;}
 

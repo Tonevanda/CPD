@@ -29,7 +29,10 @@ public class Card {
         CHOCOLATE,
         SHOPPING_CART,
         SYRINGE,
-        BOOTS
+        BOOTS,
+        TURN_TABLE,
+        SHIP,
+        CITY
     }
 
     final private Type _type;
@@ -183,7 +186,8 @@ public class Card {
                          | | |__________________| | |
                         [| | |------------------| | |]
                          |_| |                  | |_|
-                           |_|                  |_|""";
+                           |_|                  |_|
+                         \n""";
                 this._width = 31;
                 this._gold = 3;
                 this._cooldown = 9;
@@ -555,7 +559,62 @@ public class Card {
 
                 this._width = 27;
                 this._gold = 5;
-                power = "Bought: +20 Armor. +8 extra Armor per armor gaining ability";
+                power = "Bought: +20 Armor. Give armor gaining abilities +8 Armor";
+            }
+            case TURN_TABLE -> {
+                ascii = """
+                                     ____           __
+                                     \\===\\=========|__|=[]
+                          <========^==='======>    _||_
+                         _/_|_|_|_|_|_|_|_|_|_\\_^__||||_
+                        |                              |
+                        |                              |
+                        +---/||\\----------------/||\\---+
+                           ^^^^^^              ^^^^^^
+                        \s
+                        \s
+                        """;
+
+                this._width = 35;
+                this._gold = 5;
+                this._cooldown = 10;
+                power = "Advance the right card 4s";
+            }
+            case SHIP -> {
+                ascii = """
+                                    ____
+                                     ---|
+                         \\/            /|     \\/
+                                      / |\\
+                                     /  | \\        \\/
+                                    /   || \\
+                                   /    | | \\
+                                  /     | |  \\
+                                 /      | |   \\
+                                /       ||     \\
+                               /________/       \\
+                               ________/_________--/
+                        ~~~    \\__________________/""";
+
+                this._width = 30;
+                this._gold = 10;
+                this._armor = 3;
+                power = "+3 Armor per ability triggered";
+            }
+            case CITY -> {
+                ascii = "                   ..======..\n" +
+                        "                   ||::: : |\n" +
+                        "              .~.===: : : :|   ..===.\n" +
+                        ".=======.~,   |\"|: :|::::::|   ||:::|\n" +
+                        "|: :: ::|\"|l_l|\"|:: |:;;:::|___!| ::|\n" +
+                        "::: :: :|\"||_||\"| : |: :: :|: : |:: |\n" +
+                        "|:===F=:|\"!/|\\!\"|::F|:====:|::_:|: :|\n" +
+                        "![_][I_]!//_:_\\\\![]I![_][_]!_[_]![]_!";
+                this._width = 38;
+                this._gold = 6;
+                this._cooldown = 8;
+                this._armor = 8;
+                power = "+8 Armor and give armor gaining abilities +1 Armor";
             }
         }
 
@@ -669,7 +728,30 @@ public class Card {
                 this._description.clear();
                 fillDescription("+".concat(Integer.toString(this._armor)).concat(" Armor. Bought: +10 Armor"));
             }
+            case SHIP -> {
+                this._description.clear();
+                fillDescription("+".concat(Integer.toString(this._armor)).concat(" Armor per ability triggered"));
+            }
+            case CITY -> {
+                this._description.clear();
+                fillDescription("+".concat(Integer.toString(this._armor)).concat(" Armor and give armor gaining abilities +1 Armor"));
+            }
         }
+    }
+
+    public void advance(Player friendlyPlayer, Player enemyPlayer, int cardIndex, int cooldownAdvance){
+        if(this._originalCooldown > 0) {
+            this._cooldown = this._cooldown - cooldownAdvance;
+            if (this._cooldown <= 0) {
+                int nextCooldownAdvance = -this._cooldown;
+                triggerCooldownEffect(friendlyPlayer, enemyPlayer, cardIndex);
+                if (nextCooldownAdvance > 0) {
+                    advance(friendlyPlayer, enemyPlayer, cardIndex, nextCooldownAdvance);
+                }
+            }
+        }
+
+
     }
 
     public void triggerCooldownEffect(Player friendlyPlayer, Player enemyPlayer, int cardIndex){
@@ -699,12 +781,22 @@ public class Card {
                 case SYRINGE -> {
                     friendlyPlayer.setHealth(friendlyPlayer.getHealth()+12);
                 }
+                case TURN_TABLE -> {
+                    Card rightCard = friendlyPlayer.getHandCard(cardIndex+1);
+                    if(rightCard != null){
+                        rightCard.advance(friendlyPlayer, enemyPlayer, cardIndex+1, 4);
+                    }
+                }
+                case CITY -> {
+                    friendlyPlayer.setArmor(friendlyPlayer.getArmor()+this._armor);
+
+                }
             }
-            if(this._originalCooldown > 0 && cardIndex != -1) {
+            if(this._originalCooldown > 0) {
                 for (int i = 0; i < friendlyPlayer.getHandCardsCount(); i++) {
                     if(i != cardIndex) {
                         Card card = friendlyPlayer.getHandCard(i);
-                        card.triggerAfterItemTriggersEffect(friendlyPlayer, enemyPlayer);
+                        card.triggerAfterItemTriggersEffect(friendlyPlayer, enemyPlayer, i);
                     }
                 }
             }
@@ -818,20 +910,16 @@ public class Card {
         }
     }
 
-    public void triggerAfterItemTriggersEffect(Player friendlyPlayer, Player enemyPlayer){
+    public void triggerAfterItemTriggersEffect(Player friendlyPlayer, Player enemyPlayer, int cardIndex){
         switch(this._type){
             case TEDDY -> {
                 setArmor(this._armor+1);
             }
-            case KNIFE -> {
-                setDamage(this._damage+2);
-                setCooldown(this._cooldown-3);
-            }
             case SYRINGE -> {
-                this._cooldown -= 2;
-                if(this._cooldown <= 0) {
-                    triggerCooldownEffect(friendlyPlayer, enemyPlayer, -1);
-                }
+                advance(friendlyPlayer, enemyPlayer, cardIndex, 2);
+            }
+            case SHIP -> {
+                friendlyPlayer.setArmor(friendlyPlayer.getArmor()+this._armor);
             }
         }
     }
@@ -907,7 +995,7 @@ public class Card {
             }
 
 
-            if(cooldownLinesCount > 0 && row-2-this._art.size()-this._description.size() > 0){
+            if(cooldownLinesCount > 0 && row-2-this._art.size()-this._description.size() >= 0){
                 text = text.concat(drawCooldownLines());
             }
             else {
