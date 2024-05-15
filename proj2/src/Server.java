@@ -2,8 +2,8 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.util.*;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -13,6 +13,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import javax.net.ssl.*;
 
 
 /**
@@ -37,10 +39,7 @@ public class Server extends Communication{
 
     private final int DISCONNECT_TIMEOUT = 30;
 
-    private final int CONNECTION_CHECK_TIMEOUT = 6;
 
-
-    private final int CONNECTION_CHECK_INTERVAL = 2;
 
     private Timer timer = new Timer();
 
@@ -66,7 +65,7 @@ public class Server extends Communication{
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnrecoverableKeyException, CertificateException, KeyStoreException, IOException, NoSuchAlgorithmException, KeyManagementException {
         Server server = new Server(3);
         server.startServer();
     }
@@ -82,9 +81,16 @@ public class Server extends Communication{
                     case AUTHENTICATION -> {
                         player = handleAuthentication(reader, writer);
                         state = State.valueOf(player.getServerState());
-                        if(state == State.QUEUE || state == State.GAME){
+                        if(state == State.QUEUE || state == State.GAME || state == State.MENU){
+                            if(state == State.QUEUE || state == State.GAME){
+                                socket.setSoTimeout(10);
+                            }
                             gamemode = 'i';
                             player.resetTimer(timerTask.getTime());
+                        }
+
+                        else if(state != State.MENU){
+                            socket.setSoTimeout(10);
                         }
                     }
                     case MENU -> {
@@ -95,8 +101,9 @@ public class Server extends Communication{
                             updateRank(player);
                         }
                         else if(gamemode == 'a' || gamemode == 'b') {
-                            manageSimple();
+                            if(gamemode == 'a')manageSimple();
                             state = State.QUEUE;
+                            socket.setSoTimeout(10);
                             player.resetTimer(this.timerTask.getTime());
                             player.setTimer(0);
                         }
@@ -107,29 +114,22 @@ public class Server extends Communication{
                         if (this.currentAuths.get(player.getName()).getInGame()) {
                             state = State.GAME;
                             player.setServerState("GAME");
+                            socket.setSoTimeout(10);
                             player.resetTimer(this.timerTask.getTime());
                             player.setTimer(0);
                         } else if (player.timeChanged(this.timerTask.getTime())){
-                            player.ping();
                             write(player.getWriter(), CLEAR_SCREEN.concat("Waiting for game to start. ").concat(Integer.toString(player.getTime()).concat(" seconds have passed")), '1');
                             flush(player.getWriter());
                         }
-                        if(isConnectionAlive(reader, player.getDisconnected())){
-                            player.resetConnectionTime();
-                        }
+                        readNonBlocking(player.getReader());
                     }
                     case GAME -> {
-                        if(player.getTimedOut()){
-                            this.locks.getFirst().lock();
-                            this.currentAuths.remove(player.getName());
-                            this.locks.getFirst().unlock();
-                            socket.close();
-                            state = State.QUIT;
-                            updateRank(player);
-
+                        if(player.getDisconnected()){
+                            throw new SocketException();
                         }
                         else if (!this.currentAuths.get(player.getName()).getInGame()){
                             state = State.MENU;
+                            socket.setSoTimeout(0);
                             player.resetTimer(this.timerTask.getTime());
                         }
 
@@ -190,8 +190,8 @@ public class Server extends Communication{
         String name = "";
         try {
             while (rank == -1) {
-                name = read(reader, writer).getLast();
-                String password = read(reader, writer).getLast();
+                name = read(reader).getLast();
+                String password = read(reader).getLast();
                 rank = authenticateClient(name, password, writer);
             }
         }catch(SocketException e){
@@ -207,7 +207,7 @@ public class Server extends Communication{
             manageSimple();
         }
         else {
-            player = new Player(name, rank, writer, reader, TIMER_INTERVAL/1000, CONNECTION_CHECK_INTERVAL, CONNECTION_CHECK_TIMEOUT, DISCONNECT_TIMEOUT, this.timerTask.getTime());
+            player = new Player(name, rank, writer, reader, TIMER_INTERVAL/1000, DISCONNECT_TIMEOUT, this.timerTask.getTime());
             currentAuths.put(name, player);
         }
 
@@ -226,7 +226,7 @@ public class Server extends Communication{
         flush(writer);
         String response;
         try{
-            response = read(reader, writer).getLast().toLowerCase();
+            response = read(reader).getLast().toLowerCase();
         }catch(SocketException e){
             throw e;
         }
@@ -243,9 +243,22 @@ public class Server extends Communication{
 
     }
 
-    private void startServer(){
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
+    private void startServer() throws KeyStoreException, IOException, UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException, KeyManagementException {
+        // Load server KeyStore
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        keyStore.load(new FileInputStream("certificates/serverkeystore.jks"), "password".toCharArray());
 
+        // Initialize KeyManagerFactory with the KeyStore
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(keyStore, "password".toCharArray());
+
+        // Initialize SSLContext
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagerFactory.getKeyManagers(), null, null);
+
+        // Create SSLServerSocketFactory and SSLServerSocket
+        SSLServerSocketFactory serverSocketFactory = sslContext.getServerSocketFactory();
+        try (SSLServerSocket serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(port)) {
             System.out.println("Server is listening on port " + port);
 
             for(int i = 1; i < Card.getCardsCount(); i++){
@@ -269,7 +282,7 @@ public class Server extends Communication{
             });
 
             while (true) {
-                Socket socket = serverSocket.accept();
+                SSLSocket socket = (SSLSocket) serverSocket.accept();
 
                 InputStream input = socket.getInputStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(input));
@@ -438,6 +451,9 @@ public class Server extends Communication{
                     if(currentAuths.containsKey(name)){
                         Player player = currentAuths.get(name);
                         if(!player.getTimedOut() && player.getDisconnected()){
+                            if((!player.getInGame() && State.valueOf(player.getServerState()) == State.GAME) || (player.getInGame() && State.valueOf(player.getServerState()) == State.QUEUE)){
+                                player.setServerState(State.MENU.toString());
+                            }
                             write(writer, "Successfully authenticated!", player.getServerState().charAt(0));
                             flush(writer);
                             return player.getRank();

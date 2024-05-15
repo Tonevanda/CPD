@@ -1,3 +1,4 @@
+import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.*;
@@ -88,9 +89,6 @@ public class Game extends Communication{
                     if(this.players.size() <= 1) state = State.END;
                     for(int i = 0; i < this.players.size(); i++) {
                         Player player = this.players.get(i);
-                        if(player.timeChanged(this.timerTask.getTime())){
-                            player.ping();
-                        }
                         if(player.getTimedOut()){
                             leaveGame(player);
                             continue;
@@ -136,7 +134,7 @@ public class Game extends Communication{
                         previous_time = timerTask.getTime();
                         time--;
                         if(nonPlayingPlayer != null){
-                            if(nonPlayingPlayer.timeChanged(this.timerTask.getTime()))nonPlayingPlayer.ping();
+                            if(nonPlayingPlayer.timeChanged(this.timerTask.getTime()))getInputAndVerifyConnection(nonPlayingPlayer);
                             if(!nonPlayingPlayer.getDisconnected() && nonPlayingPlayer.getAlreadyDisconnectedOnce())
                                 reconnectPlayer(nonPlayingPlayer);
                             getInputAndVerifyConnection(nonPlayingPlayer);
@@ -177,19 +175,23 @@ public class Game extends Communication{
     }
 
     public String getInputAndVerifyConnection(Player player) throws IOException {
-        if(player.getReader().ready() || (player.getDisconnected() && !player.getAlreadyDisconnectedOnce())){
+        if(!player.getDisconnected()) {
             List<String> response;
             try {
-                response = read(player.getReader());
-            }catch(SocketException e){
+                response = readNonBlocking(player.getReader());
+            } catch (SocketException | SSLException e) {
+                System.out.println("DISCONNECTION: ".concat(player.getName()));
                 player.setAlreadyDisconnectedOnce(true);
+                player.setDisconnected(true);
                 return null;
             }
-            player.resetConnectionTime();
-            if(!response.getFirst().equals(Character.toString(ALIVE_ENCODE))){
+
+
+            if (response != null) {
                 return response.getLast();
             }
         }
+
         return null;
     }
 
@@ -224,8 +226,8 @@ public class Game extends Communication{
             List<Player> fight = this.fights.get(i);
             Player player1 = fight.getFirst();
             Player player2 = fight.getLast();
-            if(player1.timeChanged(this.timerTask.getTime())) player1.ping();
-            if(player2.timeChanged(this.timerTask.getTime()))player2.ping();
+            if(player1.timeChanged(this.timerTask.getTime())) getInputAndVerifyConnection(player1);
+            if(player2.timeChanged(this.timerTask.getTime()))getInputAndVerifyConnection(player2);
             reconnectFight(player1, player2);
 
             player1.triggerCardCooldownEffects(player2);

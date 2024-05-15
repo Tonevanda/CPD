@@ -1,3 +1,7 @@
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
 import java.net.*;
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -6,6 +10,11 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.Selector;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -28,22 +37,36 @@ public class Client extends Communication{
         QUIT
     }
  
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
 
         Client client = new Client();
         client.startClient();
 
     }
 
-    private void startClient() throws IOException {
+    private void startClient() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, KeyManagementException {
 
         System.out.println(CLEAR_SCREEN.concat("Client started"));
 
         State state = State.AUTHENTICATION;
 
+        // Load client TrustStore
+        KeyStore trustStore = KeyStore.getInstance("JKS");
+        trustStore.load(new FileInputStream("../certificates/servertruststore.jks"), "password".toCharArray());
 
-        try (Socket socket = new Socket(hostname, port)) {
+        // Initialize TrustManagerFactory with the TrustStore
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(trustStore);
 
+        // Initialize SSLContext
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
+
+        // Create SSLSocketFactory and SSLSocket
+        SSLSocketFactory socketFactory = sslContext.getSocketFactory();
+
+        try (SSLSocket socket = (SSLSocket) socketFactory.createSocket(hostname, port)) {
+            socket.setSoTimeout(0);
             // Write information to server
             OutputStream output = socket.getOutputStream();
             PrintWriter writer = new PrintWriter(output, true);
@@ -56,27 +79,28 @@ public class Client extends Communication{
             Scanner scanner = new Scanner(System.in);
 
             List<String> gameResponse = new ArrayList<>();
-
             while(state != State.QUIT) {
                 switch (state) {
                     case AUTHENTICATION -> {
                         ArrayList<String> credentials = getCredentials(scanner, terminalReader);
                         write(writer, credentials.getFirst());
                         write(writer, credentials.getLast());
-                        List<String> response = read(reader, writer);
+                        List<String> response = read(reader);
+                        System.out.println("Response: " + response);
                         System.out.println(response.getLast());
 
                         if(response.getFirst().equals("0") || response.getFirst().equals("M")) {
                             state = State.MENU;
-                            System.out.println(read(reader, writer).getLast());
-                            System.out.println(read(reader, writer).getLast());
-                            System.out.println(read(reader, writer).getLast());
+                            System.out.println(read(reader).getLast());
+                            System.out.println(read(reader).getLast());
+                            System.out.println(read(reader).getLast());
                         }
                         else if(response.getFirst().equals("Q")){
                             state = State.QUEUE;
 
                         }
                         else if(response.getFirst().equals("G")){
+                            socket.setSoTimeout(10);
                             state = State.GAME;
                         }
                     }
@@ -92,30 +116,31 @@ public class Client extends Communication{
                         else System.out.println("Invalid input! Please Submit A, B or Q.");
                     }
                     case QUEUE -> {
-                        List<String> response = read(reader, writer);
+                        List<String> response = read(reader);
+                        System.out.println("Response: " + response);
                         System.out.println(response.getLast());
                         if(response.getFirst().equals("0")){
                             state = State.GAME;
+                            socket.setSoTimeout(10);
                         }
                     }
                     case GAME -> {
                         System.out.print("");
-                        if(reader.ready()){
-                            List<String> response = read(reader);
-                            if(response.getFirst().equals(Character.toString(TIMER_ENCODE))){
-                                write(writer, "", ALIVE_ENCODE);
-                            }
-                            else if(response.getFirst().equals("0")){
+
+                        List<String> response = readNonBlocking(reader);
+                        if(response != null){
+                            if(response.getFirst().equals("0")){
                                 gameResponse = response;
                                 System.out.println(response.getLast());
                             }
                             else if(response.getFirst().equals("1")){
                                 System.out.println(response.getLast());
                                 gameResponse.clear();
+                                socket.setSoTimeout(0);
                                 state = State.MENU;
-                                System.out.println(read(reader, writer).getLast());
-                                System.out.println(read(reader, writer).getLast());
-                                System.out.println(read(reader, writer).getLast());
+                                System.out.println(read(reader).getLast());
+                                System.out.println(read(reader).getLast());
+                                System.out.println(read(reader).getLast());
                             }
                             else{
                                 System.out.println(response.getLast());
