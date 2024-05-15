@@ -23,7 +23,6 @@ public class Client extends Communication{
     enum State{
         AUTHENTICATION,
         MENU,
-
         QUEUE,
         GAME,
         QUIT
@@ -43,8 +42,6 @@ public class Client extends Communication{
         State state = State.AUTHENTICATION;
 
 
-
-
         try (Socket socket = new Socket(hostname, port)) {
 
             // Write information to server
@@ -57,8 +54,6 @@ public class Client extends Communication{
 
             Reader terminalReader = new InputStreamReader(System.in);
             Scanner scanner = new Scanner(System.in);
-
-
 
             List<String> gameResponse = new ArrayList<>();
 
@@ -137,10 +132,6 @@ public class Client extends Communication{
                     }
                 }
             }
-
-
-
-
         } catch (UnknownHostException ex) {
             System.out.println("Server not found: " + ex.getMessage());
         } catch (IOException ex) {
@@ -148,8 +139,6 @@ public class Client extends Communication{
         }catch (Exception ex) {
             System.out.println("An unexpected error occurred: " + ex.getMessage());
         }
-
-
     }
 
     private ArrayList<String> getCredentials(Scanner scanner, Reader terminalReader) throws IOException {

@@ -76,9 +76,6 @@ public class Server extends Communication{
         Player player = null;
         char gamemode = 'n';
 
-
-
-
         try {
             while (state != State.QUIT) {
                 switch (state) {
@@ -251,15 +248,13 @@ public class Server extends Communication{
 
             System.out.println("Server is listening on port " + port);
 
-            for(int i = 1; i <= 23; i++){
+            for(int i = 1; i <= Card.getCardsCount(); i++){
                 this.gameStore.add(new Card(i));
             }
-
 
             this.timer.schedule(this.timerTask, 0, TIMER_INTERVAL);
 
             Thread.startVirtualThread(()->{
-
 
                 int previous_time = 0;
 
@@ -305,9 +300,6 @@ public class Server extends Communication{
     private List<List<Player>> getRankedPlayers(){
         List<List<Player>> games = new ArrayList<>();
 
-
-
-
         for(int j = 0; j < this.rankedPlayers.size(); j++) {
             this.rankedPlayers.sort((p1, p2) -> (p2.getTime() - p1.getTime()));
             System.out.println("THE CURRENT RANKED PLAYERS LIST IS:");
@@ -344,8 +336,6 @@ public class Server extends Communication{
 
         }
 
-
-
         return games;
     }
 
@@ -354,12 +344,7 @@ public class Server extends Communication{
         if(this.rankedPlayers.size() >= NUM_PLAYERS) {
             System.out.println("Managing ranked game");
 
-
-
             List<List<Player>> games = getRankedPlayers();
-
-
-
 
             locks.get(2).unlock();
             if(!games.isEmpty()){
@@ -368,7 +353,6 @@ public class Server extends Communication{
                 }
 
             }
-
         }
         else{
             locks.get(2).unlock();
@@ -385,7 +369,6 @@ public class Server extends Communication{
                 gamePlayers.add(this.simplePlayers.getFirst());
                 this.simplePlayers.removeFirst();
             }
-
 
             locks.get(1).unlock();
             // Start the game

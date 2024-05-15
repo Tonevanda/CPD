@@ -2,15 +2,8 @@ import java.util.*;
 
 public class Card {
 
-
     private int _width = 0;
-
     private int MAX_WIDTH = 156;
-
-
-
-
-
 
     enum Type{
         LOCK,
@@ -37,15 +30,9 @@ public class Card {
         SHOPPING_CART,
         SYRINGE,
         BOOTS
-
-
-
-
     }
 
-
     final private Type _type;
-
 
     private List<String> _art = new ArrayList<>();
 
@@ -63,7 +50,6 @@ public class Card {
 
     private int _damage = 0;
 
-
     private int _originalArmor = -1;
     private int _armor = -1;
 
@@ -71,10 +57,11 @@ public class Card {
 
     private int _rand = -1;
 
-
     private boolean _isInstant = false;
 
-
+    public static int getCardsCount(){
+        return Type.values().length;
+    }
 
     Card(int type){
 
@@ -618,7 +605,6 @@ public class Card {
 
     public void setGold(int gold){this._gold = gold;}
 
-
     public int getWidth(){return this._width;}
 
     public int getType(){return this._type.ordinal();}
@@ -637,7 +623,6 @@ public class Card {
 
     public int getOrignalArmor(){return this._originalArmor;}
 
-
     public int getOriginalDamage(){return this._originalDamage;}
 
     public boolean isInstant(){return this._isInstant;}
@@ -646,8 +631,6 @@ public class Card {
         this._cooldown = cooldown;
         if(this._originalCooldown > 0) this._cooldown = Math.max(this._cooldown, 1);
     }
-
-
 
     public void setDamage(int damage){
         this._damage = damage;
@@ -749,7 +732,6 @@ public class Card {
 
         }
     }
-
 
     public void triggerOnBuyEffect(Player friendlyPlayer){
         switch(this._type){
@@ -867,13 +849,6 @@ public class Card {
             }
         }
     }
-
-
-
-
-
-
-
 
     public String draw(int row, int height, int cooldownLinesCount, boolean hideIndex, boolean hideGold){
         String cooldown = Integer.toString(this._cooldown);

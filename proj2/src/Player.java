@@ -9,6 +9,7 @@ public class Player{
     //TIMER
 
     private int _time = 0;
+
     private int _previousTimerTime = 0;
 
     private int _timerInterval;
@@ -16,8 +17,6 @@ public class Player{
     private int _disconnectionTimeout;
 
     private int _disconnectionTime;
-
-
 
     private boolean _timedOut = false;
 
@@ -31,11 +30,9 @@ public class Player{
 
     private boolean _alreadyDisconnectedOnce = false;
 
-
-
-
     //GAME
     private final String _name;
+
     private int _rank;
 
     private int _previousRank;
@@ -44,18 +41,15 @@ public class Player{
 
     private BufferedReader _reader;
 
-
     private String _serverState = "MENU";
 
     private List<Card> hand = new ArrayList<>();
-    private List<Card> storeCards = new ArrayList<>();
 
+    private List<Card> storeCards = new ArrayList<>();
 
     private int _handWidth = 1;
 
-
     private int _maxHealth = 300;
-
 
     private int _health = 300;
 
@@ -90,16 +84,10 @@ public class Player{
         this._disconnectionTimeout = disconnectionTimeout;
         this._timerInterval = timerInterval;
 
-
         resetTimer(currentTime);
         setTimer(0);
 
         resetPlayerGameInfo();
-
-
-
-
-
     }
 
     //TIMER
@@ -122,10 +110,6 @@ public class Player{
         this._timedOut = false;
     }
 
-
-
-
-
     public boolean timeChanged(int currentTime) {
         if(this._previousTimerTime >= currentTime+this._timerInterval || this._previousTimerTime+this._timerInterval <= currentTime){
             this._previousTimerTime = currentTime;
@@ -140,12 +124,10 @@ public class Player{
             if(this._disconnectionTime <= 0) {
                 this._timedOut = true;
             }
-
             return true;
         }
         return false;
     }
-
 
     public void ping() {
         this._connectionTime--;
@@ -165,7 +147,6 @@ public class Player{
     public boolean getTimedOut(){return this._timedOut;}
 
     public boolean getAlreadyDisconnectedOnce(){return this._alreadyDisconnectedOnce;}
-
 
     //GAME
 
@@ -193,12 +174,9 @@ public class Player{
 
     public String getServerState(){return this._serverState;}
 
-
     public boolean getInGame() { return this._inGame; }
 
     public boolean hasPlayerDBInfoChanged(){return this._rank != this._previousRank;}
-
-
 
     public String getName(){
         return this._name;
@@ -211,9 +189,6 @@ public class Player{
     public PrintWriter getWriter() { return this._writer; }
 
     public BufferedReader getReader() { return this._reader; }
-
-
-
 
     public List<Card> getStoreCards(){return this.storeCards;}
 
@@ -244,7 +219,6 @@ public class Player{
 
     public int getOriginalArmor(){return this._originalArmor;}
 
-
     public int getHandCardsCount() { return this.hand.size(); }
 
     public List<Card> getHandCards(){return this.hand;}
@@ -259,14 +233,11 @@ public class Player{
         if(this._rank < 0) this._rank = 0;
     }
 
-
     public void setInGame(boolean inGame) { this._inGame = inGame; }
 
     public void setIsFighting(boolean isFighting){this._isFighting = isFighting;}
 
     public void setServerState(String serverState){this._serverState = serverState;}
-
-
 
     public void setReader(BufferedReader reader){this._reader = reader;}
 
@@ -319,19 +290,15 @@ public class Player{
         if(this._isFighting) {
             for (Card card : this.hand) {
                 card.triggerOnGainingArmorEffect();
-                ;
             }
         }
         this._armor = armor;
-
     }
 
     public void setOriginalArmor(int armor){
         setArmor(this._armor + armor - this._originalArmor);
         this._originalArmor = armor;
     }
-
-
 
     public void resetStoreCards(){this.storeCards.clear();}
 
@@ -345,9 +312,8 @@ public class Player{
         }
 
     }
+
     public void addStoreCard(Card card){this.storeCards.add(card);}
-
-
 
     public void removeStoreCard(int cardIndice){
         this.storeCards.remove(cardIndice);
@@ -406,6 +372,7 @@ public class Player{
         }
 
     }
+
     public void takeDamage(int damage){
         if(this._armor > 0){
             this._armor = Math.max(0, this._armor - damage);
@@ -452,6 +419,5 @@ public class Player{
         text = text.concat(" |");
         return text;
     }
-
 
 }

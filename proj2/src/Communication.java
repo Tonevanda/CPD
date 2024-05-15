@@ -18,13 +18,6 @@ public abstract class Communication {
     protected final char ALIVE_ENCODE = 'A';
 
 
-
-
-
-
-
-
-
     public void write(PrintWriter writer, String text, char encoding){ writer.println(encoding + text);}
 
     public void write(PrintWriter writer, String text){
@@ -34,7 +27,6 @@ public abstract class Communication {
     public void flush(PrintWriter writer){
         writer.flush();
     }
-
 
     public List<String> read(BufferedReader reader)throws IOException{
         try {
@@ -91,10 +83,8 @@ public abstract class Communication {
 
     public boolean isConnectionAlive(BufferedReader reader, boolean hasTimedOut) throws IOException {
         try {
-
             if (reader.ready() || hasTimedOut) {
                 reader.readLine();
-                //System.out.println("Read message: ".concat(response));
                 return true;
             }
             return false;
@@ -102,11 +92,6 @@ public abstract class Communication {
             throw e;
         }
     }
-
-
-
-
-
 
     public void broadcast(String text, char encoding){
         for(PrintWriter writer : writers){

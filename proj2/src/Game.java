@@ -5,13 +5,11 @@ import java.util.*;
 public class Game extends Communication{
     private final List<Player> players;
 
-
     final private int CARD_HEIGHT = 18;
 
     private final List<Card> store;
 
     private List<List<Player>> fights = new ArrayList<>();
-
 
     final private int SCORE_RANGE = 20;
 
@@ -36,10 +34,7 @@ public class Game extends Communication{
 
     private State state = State.STORE;
 
-
     private MyTimerTask timerTask;
-
-
 
     private final int TIMER_INTERVAL = 1000;
 
@@ -72,7 +67,6 @@ public class Game extends Communication{
         this.players = players;
         this._gamemode = gamemode;
     }
-
 
     public void run() throws IOException {
         System.out.println("Game started");
@@ -109,7 +103,6 @@ public class Game extends Communication{
                             storeHandler(player, move);
                         }
 
-
                         if(this.finishedStatePlayersCount >= this.players.size()) {
                             time = FIGHT_TIMEOUT;
                             previous_time = timerTask.getTime();
@@ -134,10 +127,7 @@ public class Game extends Communication{
                                 nonPlayingPlayer = fight.getFirst();
                                 nonPlayingPlayer.setIsFighting(false);
                             }
-
-
                         }
-
                     }
                 }
                 case FIGHT -> {
@@ -150,7 +140,6 @@ public class Game extends Communication{
                             if(!nonPlayingPlayer.getDisconnected() && nonPlayingPlayer.getAlreadyDisconnectedOnce())
                                 reconnectPlayer(nonPlayingPlayer);
                             getInputAndVerifyConnection(nonPlayingPlayer);
-
                         }
                         fightHandler(time);
 
@@ -175,12 +164,9 @@ public class Game extends Communication{
                             if(this.players.size() <= 1) state = State.END;
                         }
                     }
-
                 }
             }
-
         }
-
 
         if(!this.players.isEmpty()) {
             Player winner = this.players.getFirst();
@@ -203,7 +189,6 @@ public class Game extends Communication{
             if(!response.getFirst().equals(Character.toString(ALIVE_ENCODE))){
                 return response.getLast();
             }
-
         }
         return null;
     }
@@ -215,8 +200,6 @@ public class Game extends Communication{
             write(player.getWriter(), "", '0');
             flush(player.getWriter());
         }
-
-
     }
 
     public void reconnectFight(Player player1, Player player2) throws IOException {
@@ -233,9 +216,6 @@ public class Game extends Communication{
         userInput = userInput.toLowerCase();
         MoveType moveType = getMoveType(currentPlayer, userInput);
         makeMove(currentPlayer, moveType, userInput);
-
-
-
     }
 
     public void fightHandler(int time) throws IOException {
@@ -261,11 +241,8 @@ public class Game extends Communication{
                 }
                 else if(player1.getHealth() <= 0) leaveGame(player1);
                 if(player2.getHealth() <= 0)leaveGame(player2);
-
-
             }
         }
-
     }
 
     public void leaveGame(Player player){
@@ -383,7 +360,6 @@ public class Game extends Communication{
             }
         }
         return MoveType.SELL;
-
     }
 
     public void makeMove(Player currentPlayer, MoveType moveType, String userInput){
@@ -464,11 +440,7 @@ public class Game extends Communication{
             }
         }
         player.reorderCardIndices();
-
     }
-
-
-
 
     public void drawFightState(List<Player> fight, int time){
         Player player1 = fight.getFirst();
@@ -499,7 +471,6 @@ public class Game extends Communication{
 
         write(player.getWriter(), text);
         flush(player.getWriter());
-
     }
 
     public String drawCards(Player player, List<Card> cards, boolean hideIndex, boolean hideGoldAndLocks){
@@ -528,10 +499,6 @@ public class Game extends Communication{
             }
             text = text.concat("\n");
         }
-
         return text;
     }
-
-
-
 }
