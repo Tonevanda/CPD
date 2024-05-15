@@ -188,7 +188,6 @@ public class Game extends Communication{
 
 
             if (response != null) {
-                player.resetConnectionTime();
                 return response.getLast();
             }
         }

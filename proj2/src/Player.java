@@ -20,11 +20,8 @@ public class Player{
 
     private boolean _timedOut = false;
 
-    private int _connectionCheckInterval;
 
-    private int _connectionTimeout;
 
-    private int _connectionTime;
 
     private boolean _isDisconnected = false;
 
@@ -73,14 +70,12 @@ public class Player{
 
     private boolean _isFighting = false;
 
-    public Player(String name, int rank, PrintWriter writer, BufferedReader reader, int timerInterval, int connectionCheckInterval, int connectionTimeout, int disconnectionTimeout, int currentTime){
+    public Player(String name, int rank, PrintWriter writer, BufferedReader reader, int timerInterval, int disconnectionTimeout, int currentTime){
         this._name = name;
         this._rank = rank;
         this._previousRank = rank;
         this._writer = writer;
         this._reader = reader;
-        this._connectionCheckInterval = connectionCheckInterval;
-        this._connectionTimeout = connectionTimeout;
         this._disconnectionTimeout = disconnectionTimeout;
         this._timerInterval = timerInterval;
 
@@ -100,12 +95,11 @@ public class Player{
 
     public void setAlreadyDisconnectedOnce(boolean alreadyDisconnectedOnce){this._alreadyDisconnectedOnce = alreadyDisconnectedOnce;}
 
-    public void resetConnectionTime(){this._connectionTime = this._connectionTimeout;}
+
 
     public void resetTimer(int time){
         this._previousTimerTime = time;
         this._disconnectionTime = this._disconnectionTimeout;
-        this._connectionTime = this._connectionTimeout;
         this._isDisconnected = false;
         this._timedOut = false;
     }

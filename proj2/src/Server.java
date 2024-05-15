@@ -39,10 +39,7 @@ public class Server extends Communication{
 
     private final int DISCONNECT_TIMEOUT = 30;
 
-    private final int CONNECTION_CHECK_TIMEOUT = 6;
 
-
-    private final int CONNECTION_CHECK_INTERVAL = 2;
 
     private Timer timer = new Timer();
 
@@ -124,9 +121,7 @@ public class Server extends Communication{
                             write(player.getWriter(), CLEAR_SCREEN.concat("Waiting for game to start. ").concat(Integer.toString(player.getTime()).concat(" seconds have passed")), '1');
                             flush(player.getWriter());
                         }
-                        if(readNonBlocking(reader) != null){
-                            player.resetConnectionTime();
-                        }
+                        readNonBlocking(player.getReader());
                     }
                     case GAME -> {
                         if(player.getDisconnected()){
@@ -212,7 +207,7 @@ public class Server extends Communication{
             manageSimple();
         }
         else {
-            player = new Player(name, rank, writer, reader, TIMER_INTERVAL/1000, CONNECTION_CHECK_INTERVAL, CONNECTION_CHECK_TIMEOUT, DISCONNECT_TIMEOUT, this.timerTask.getTime());
+            player = new Player(name, rank, writer, reader, TIMER_INTERVAL/1000, DISCONNECT_TIMEOUT, this.timerTask.getTime());
             currentAuths.put(name, player);
         }
 
