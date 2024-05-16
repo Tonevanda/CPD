@@ -118,7 +118,6 @@ public class Client extends Communication{
                     }
                     case QUEUE -> {
                         List<String> response = read(reader);
-                        System.out.println("Response: " + response);
                         System.out.println(response.getLast());
                         if(response.getFirst().equals("0")){
                             state = State.GAME;

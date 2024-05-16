@@ -101,11 +101,49 @@ public class Game extends Communication{
 
                         String move = getInputAndVerifyConnection(player);
 
-                        if(move != null){
+                        if(move != null && !player.isFighting()){
                             storeHandler(player, move);
                         }
+                        else if(player.isFighting() && player.timeChanged(this.timerTask.getTime())){
+                            for(int j = 0; j < this.fights.size(); j++){
+                                List<Player> fight = this.fights.get(j);
+                                Player player1 = fight.getFirst();
+                                if(player1.getName().equals(player.getName())){
+                                    Player player2 = fight.getLast();
+                                    player1.triggerCardCooldownEffects(player2);
+                                    player2.triggerCardCooldownEffects(player1);
+                                    drawFightState(fight, 30-player.getTime());
+                                    if(player1.getHealth() <= 0 || player2.getHealth() <= 0 || player.getTime() >= 30){
+                                        player1.setIsFighting(false);
+                                        player1.setEncounter(null);
+                                        this.fights.remove(j);
+                                        if(player1.getHealth() <= 0){
+                                            leaveGame(player1);
+                                        }
+                                        else if(player2.getHealth() <= 0){
+                                            player.setStoreCards(player2.getStoreCards());
+                                            player.reorderCardIndices();
+                                            drawStoreState(player, false);
+                                            write(player.getWriter(), "", '0');
+                                            flush(player.getWriter());
+                                        }
+                                        else if(player.getTime() >= 30){
+                                            refillStore(player);
+                                            player.reorderCardIndices();
+                                            drawStoreState(player, false);
+                                            write(player.getWriter(), "", '0');
+                                            flush(player.getWriter());
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+
 
                         if(this.finishedStatePlayersCount >= this.players.size() && this.players.size() > 1) {
+                            this.fights.clear();
                             time = FIGHT_TIMEOUT;
                             previous_time = timerTask.getTime();
                             this.finishedStatePlayersCount = 0;
@@ -160,6 +198,8 @@ public class Game extends Communication{
                                 }
                                 else player.resetEffects();
 
+
+
                                 player.setIsFighting(false);
                                 refillStore(player);
                                 drawStoreState(player, false);
@@ -180,6 +220,8 @@ public class Game extends Communication{
 
         System.out.println("Game ended");
     }
+
+
 
     //gets the user input and also verifies connection by verifying if socket is still open for connection.
     public String getInputAndVerifyConnection(Player player) throws IOException {
@@ -206,7 +248,7 @@ public class Game extends Communication{
     //reconnects player back to the game after a disconnection
     public void reconnectPlayer(Player player){
         player.setAlreadyDisconnectedOnce(false);
-        if(this.state == State.STORE){
+        if(this.state == State.STORE && !player.isFighting()){
             drawStoreState(player, false);
             write(player.getWriter(), "", '0');
             flush(player.getWriter());
@@ -385,10 +427,13 @@ public class Game extends Communication{
 
                 //currentPlayer.removeStoreCard(cardIndice);
                 refillStore(currentPlayer);
-                currentPlayer.reorderCardIndices();
-                drawStoreState(currentPlayer, false);
-                write(currentPlayer.getWriter(), "", '0');
-                flush(currentPlayer.getWriter());
+                if(card.getHealth() <= 0) {
+                    currentPlayer.reorderCardIndices();
+                    drawStoreState(currentPlayer, false);
+                    write(currentPlayer.getWriter(), "", '0');
+                    flush(currentPlayer.getWriter());
+                }
+
             }
             case SELL -> {
                 int cardIndice = Integer.parseInt(userInput)-currentPlayer.getStoreCardsSize()-1;
@@ -471,6 +516,27 @@ public class Game extends Communication{
                         }
                     }
                 }
+                case MOSQUITO -> {
+                    player.setIsFighting(true);
+                    List<Player> fight = new ArrayList<>();
+                    fight.add(player);
+                    Player mosquito = new Player("Giant Mosquito", "", -1);
+                    Card treasure = new Card(Card.Type.TREASURE.ordinal());
+                    treasure.setArmor(2);
+                    treasure.fillDescription("Bought: +2$");
+                    mosquito.addStoreCard(treasure);
+                    mosquito.setIsFighting(true);
+                    mosquito.setMaxHealth(25);
+                    mosquito.setOriginalSpeed(23);
+                    mosquito.setGold(2);
+                    mosquito.getHandCards().clear();
+                    mosquito.addHandCard(new Card(Card.Type.SHOVEL.ordinal()));
+                    fight.add(mosquito);
+                    this.fights.add(fight);
+                    player.setTimer(0);
+
+
+                }
 
             }
         }
@@ -501,11 +567,11 @@ public class Game extends Communication{
             player1.setInGame(false);
             leaveGame(player1);
         }
-        if(!player2.getTimedOut()) {
+        if(!player2.getTimedOut() && player2.getWriter() != null) {
             write(player2.getWriter(), text.concat(player1info).concat("         ").concat(timer).concat("\n").concat(player1Cards).concat(player2Cards).concat("\n").concat(" ").concat(player2info));
             flush(player2.getWriter());
         }
-        else if(player2.getInGame()){
+        else if(player2.getInGame() && player2.getWriter() != null){
             player2.setInGame(false);
             leaveGame(player2);
         }

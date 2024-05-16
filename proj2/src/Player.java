@@ -212,6 +212,8 @@ public class Player{
 
     public BufferedReader getReader() { return this._reader; }
 
+    public boolean isFighting(){return this._isFighting;}
+
     public List<Card> getStoreCards(){return this.storeCards;}
 
     public int getStoreCardsSize(){return this.storeCards.size();}
@@ -400,6 +402,8 @@ public class Player{
 
     //adds a new card to the store
     public void addStoreCard(Card card){this.storeCards.add(card);}
+
+    public void setStoreCards(List<Card> storeCards){this.storeCards = storeCards;}
 
     //removes a card from the store
     public void removeStoreCard(int cardIndice){

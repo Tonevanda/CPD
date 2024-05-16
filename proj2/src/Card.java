@@ -8,6 +8,7 @@ public class Card {
     public enum Type{
         LOCK,
         COIN,
+        TREASURE,
         BANDAID,
         SCROLL,
         CAT,
@@ -37,7 +38,8 @@ public class Card {
         SHIP,
         CITY,
         HOUSE,
-        MERCHANT
+        MERCHANT,
+        MOSQUITO
     }
 
     public enum BookType{
@@ -49,7 +51,7 @@ public class Card {
 
     final static int BOOK_COUNT = BookType.values().length;
 
-    final static int ENCOUNTER_COUNT = 1;
+    final static int ENCOUNTER_COUNT = 2;
 
     final static int ITEMS_COUNT = 20;
 
@@ -59,7 +61,7 @@ public class Card {
 
     private List<String> _art = new ArrayList<>();
 
-    private List<String> _description = new ArrayList<>();
+    private final List<String> _description = new ArrayList<>();
 
     private int _gold = 0;
 
@@ -80,10 +82,12 @@ public class Card {
 
     private int _rand = -1;
 
+    private int _health = -1;
+
     private boolean _isInstant = false;
 
 
-    //Constructs the Card given it's type
+    //Constructs the Card given its type
     Card(int type){
         //29
         this._type = Type.values()[type];
@@ -662,6 +666,47 @@ public class Card {
                 this._isInstant = true;
                 power = "Sells Items";
             }
+            case MOSQUITO -> {
+                ascii = """
+                           \n \n                ,-.
+                               `._        /  |        ,
+                                  `--._  ,   '    _,-'
+                           _       __  `.|  / ,--'
+                            `-._,-'  `-. \\ : /
+                                 ,--.-.-`'.'.-.,_-
+                               _ `--'-'-;.'.'-'`--
+                           _,-' `-.__,-' / : \\
+                                      _,'|  \\ `--._
+                                 _,--'   '   .     `-.
+                               ,'         \\  |        `
+                         \n
+                        """;
+
+                this._width = 35;
+                this._isInstant = true;
+                this._health = 25;
+                this._speed = 23;
+                power = "Reward: 2$";
+            }
+            case TREASURE -> {
+                ascii = """
+
+                        \s
+                        \s
+                           __________
+                          /\\____;;___\\
+                         | /         /
+                         `. ())oo() .
+                          |\\(%()*^^()^\\
+                         %| |-%-------|
+                        % \\ | %  ))   |
+                        %  \\|%________|
+                        \s
+                        \s
+                        """;
+                this._width = 16;
+                this._isInstant = true;
+            }
         }
 
         fillArt(ascii);
@@ -790,6 +835,8 @@ public class Card {
     public int getSpeed(){return this._speed;}
 
     public int getArmor(){return this._armor;}
+
+    public int getHealth(){return this._health;}
 
     public int getCooldown(){return this._cooldown;}
 
@@ -1019,6 +1066,9 @@ public class Card {
                 friendlyPlayer.setOriginalArmorBuffing(friendlyPlayer.getOriginalArmorBuffing()+8);
 
             }
+            case TREASURE -> {
+                friendlyPlayer.setGold(friendlyPlayer.getGold()+this._armor);
+            }
             case BOOK -> {
                 friendlyPlayer.activateSkill(this._rand);
                 switch(BookType.values()[this._rand]){
@@ -1027,9 +1077,10 @@ public class Card {
                     }
                 }
             }
-            case MERCHANT -> {
+            case MERCHANT, MOSQUITO -> {
                 friendlyPlayer.setEncounter(this._type);
             }
+
         }
     }
 
@@ -1126,6 +1177,14 @@ public class Card {
                     if (!hideGold && this._gold > 0) {
                         text = text.concat(gold).concat("$ ");
                         startingIndex += gold.length() + 2;
+                    }
+                    if(this._health > 0){
+                        text = text.concat("Health:").concat(Integer.toString(this._health));
+                        startingIndex += Integer.toString(this._health).length() + 7;
+                        if(this._speed > 0){
+                            text = text.concat(" Speed: ").concat(Integer.toString(this._speed));
+                            startingIndex += Integer.toString(this._speed).length() + 8;
+                        }
                     }
                     if (this._originalCooldown >= 0) {
                         text = text.concat(cooldown).concat("s");
