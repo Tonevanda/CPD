@@ -490,54 +490,50 @@ public class Server extends Communication{
     private int authenticateClient(String name, String password, PrintWriter writer) throws NoSuchAlgorithmException {
         password = hashPassword(password);
         // Load the JSON file
-        if(this.auths.containsKey(name)) {
-            Player player = this.auths.get(name);
-            if(player.getPassword().equals(password)) {
-                if(player.getTimedOut() && player.getDisconnected()){
-                    write(writer, "Successfully authenticated!", '0');
-                    flush(writer);
-                    return player.getRank();
-                }
-                else if(!player.getTimedOut() && !player.getDisconnected()) {
-                    write(writer, "User already authenticated", '1');
+        try {
+            this.locks.getFirst().lock();
+            if (this.auths.containsKey(name)) {
+                Player player = this.auths.get(name);
+                if (player.getPassword().equals(password)) {
+                    if (player.getTimedOut() && player.getDisconnected()) {
+                        write(writer, "Successfully authenticated!", '0');
+                        flush(writer);
+                        return player.getRank();
+                    } else if (!player.getTimedOut() && !player.getDisconnected()) {
+                        write(writer, "User already authenticated", '1');
+                        flush(writer);
+                        return -1;
+                    } else {
+                        if ((!player.getInGame() && State.valueOf(player.getServerState()) == State.GAME) || (player.getInGame() && State.valueOf(player.getServerState()) == State.QUEUE)) {
+                            player.setServerState(State.MENU.toString());
+                        }
+                        write(writer, "Successfully authenticated!", player.getServerState().charAt(0));
+                        flush(writer);
+                        return player.getRank();
+                    }
+
+                } else {
+                    write(writer, "Wrong password", '1');
                     flush(writer);
                     return -1;
                 }
-                else {
-                    if((!player.getInGame() && State.valueOf(player.getServerState()) == State.GAME) || (player.getInGame() && State.valueOf(player.getServerState()) == State.QUEUE)){
-                        player.setServerState(State.MENU.toString());
-                    }
-                    write(writer, "Successfully authenticated!", player.getServerState().charAt(0));
-                    flush(writer);
-                    return player.getRank();
-                }
+            }
 
-            }
-            else {
-                write(writer, "Wrong password", '1');
-                flush(writer);
-                return -1;
-            }
-        }
-        this.locks.getFirst().lock();
-        if(!this.auths.containsKey(name)) {
             Player newPlayer = new Player(name, password, 0);
 
             this.auths.put(name, newPlayer);
-        }
-        else{
-            write(writer, "User already authenticated", '1');
+            write(writer, "New account has been created!", '0');
             flush(writer);
-            return -1;
+        }finally {
+            this.locks.getFirst().unlock();
         }
-        this.locks.getFirst().unlock();
+
 
 
             // If the name is not in the database, create new user account
             //JSONObject user = createUser(name, password);
             //db.put(user);
-        write(writer, "New account has been created!", '0');
-        flush(writer);
+
 
             // Save the new user account to the database
             //saveJson(db);

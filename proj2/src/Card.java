@@ -265,7 +265,7 @@ public class Card {
                 this._width = 33;
                 this._gold = 1;
                 this._isInstant = true;
-                randomize(getRandomNumber());
+                this._rand = getRandomNumber();
 
             }
             case SHOES -> {
@@ -477,7 +477,7 @@ public class Card {
 
                 this._width = 28;
                 this._isInstant = true;
-                randomize(getRandomNumber());
+                this._rand = getRandomNumber();
 
 
             }
@@ -638,7 +638,7 @@ public class Card {
                         "   '---'   ";
 
                 this._width = 15;
-                randomize(getRandomNumber());
+                this._rand = getRandomNumber();
 
             }
             case MERCHANT -> {

@@ -431,14 +431,16 @@ public class Game extends Communication{
         int storeWidth = 1;
         int storeIndex = 0;
         int MIN_CARD_WIDTH = 11;
+        HashSet<Card.Type> currentCards = new HashSet<>();
         if(player.getEncounter() == null){
             player.setDaysRemaining(player.getDaysRemaining()-1);
             if(player.getDaysRemaining() > 0) {
                 Collections.shuffle(this.encounters);
-                while (storeWidth <= MAX_WIDTH - MIN_CARD_WIDTH || storeIndex == encounters.size()) {
+                while (storeWidth <= MAX_WIDTH - MIN_CARD_WIDTH && storeIndex < encounters.size()) {
                     Card card = this.encounters.get(storeIndex);
                     storeIndex++;
-                    if (card.getWidth() + storeWidth <= MAX_WIDTH) {
+                    if (card.getWidth() + storeWidth <= MAX_WIDTH && !currentCards.contains(card.getType())) {
+                        currentCards.add(card.getType());
                         player.addStoreCard(new Card(card.getType().ordinal()));
                         storeWidth += card.getWidth();
                         Collections.shuffle(this.encounters);
@@ -449,17 +451,18 @@ public class Game extends Communication{
             }
         }
         else {
-
             switch (player.getEncounter()) {
                 case MERCHANT -> {
                     Card coinCard = new Card(Card.Type.COIN.ordinal());
                     player.addStoreCard(coinCard);
                     storeWidth += coinCard.getWidth();
+                    currentCards.add(coinCard.getType());
                     Collections.shuffle(this.items);
-                    while (storeWidth <= MAX_WIDTH - MIN_CARD_WIDTH || storeIndex == items.size()) {
+                    while (storeWidth <= MAX_WIDTH - MIN_CARD_WIDTH && storeIndex <= items.size()) {
                         Card card = this.items.get(storeIndex);
                         storeIndex++;
-                        if (card.getWidth() + storeWidth <= MAX_WIDTH && (card.getGold() <= player.getGold() || player.getGold() == 0 || player.getStoreCardsSize() == 3)) {
+                        if (card.getWidth() + storeWidth <= MAX_WIDTH && !currentCards.contains(card.getType()) && (card.getGold() <= player.getGold() || player.getGold() == 0 || player.getStoreCardsSize() == 3)) {
+                            currentCards.add(card.getType());
                             player.addStoreCard(new Card(card.getType().ordinal()));
                             storeWidth += card.getWidth();
                             Collections.shuffle(this.items);
