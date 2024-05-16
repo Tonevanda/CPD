@@ -8,7 +8,9 @@ public class Game extends Communication{
 
     final private int CARD_HEIGHT = 18;
 
-    private final List<Card> store;
+    private final List<Card> items;
+
+    private final List<Card> encounters;
 
     private List<List<Player>> fights = new ArrayList<>();
 
@@ -29,7 +31,6 @@ public class Game extends Communication{
         BUY,
         SELL,
         SWAP,
-        REROLL,
         ENDTURN
     }
 
@@ -45,15 +46,14 @@ public class Game extends Communication{
 
     private final int MAX_WIDTH = 156;
 
-    private final int MIN_CARD_WIDTH = 11;
-
     private int finishedStatePlayersCount = 0;
 
     private Player nonPlayingPlayer = null;
 
-    public Game(List<Player> players, List<Card> store, char gamemode, MyTimerTask timerTask){
+    public Game(List<Player> players, List<Card> encounters, List<Card> items, char gamemode, MyTimerTask timerTask){
 
-        this.store = store;
+        this.encounters = encounters;
+        this.items = items;
         this.timerTask = timerTask;
 
         for(Player player : players){
@@ -98,6 +98,7 @@ public class Game extends Communication{
                             reconnectPlayer(player);
 
                         String move = getInputAndVerifyConnection(player);
+
                         if(move != null){
                             storeHandler(player, move);
                         }
@@ -278,14 +279,6 @@ public class Game extends Communication{
             flush(currentPlayer.getWriter());
             return MoveType.INVALID;
         }
-        if(userInput.equals("r")) {
-            if(currentPlayer.getGold() < 1){
-                write(currentPlayer.getWriter(), "You don't have enough gold to reroll!", '0');
-                flush(currentPlayer.getWriter());
-                return MoveType.INVALID;
-            }
-            return MoveType.REROLL;
-        }
         else if(userInput.contains("-")){
             String[] splittedInput = userInput.split("-");
             if(splittedInput.length > 2){
@@ -380,7 +373,8 @@ public class Game extends Communication{
                 currentPlayer.setGold(currentPlayer.getGold()-card.getGold());
                 card.triggerOnBuyEffect(currentPlayer);
 
-                currentPlayer.removeStoreCard(cardIndice);
+                //currentPlayer.removeStoreCard(cardIndice);
+                refillStore(currentPlayer);
                 currentPlayer.reorderCardIndices();
                 drawStoreState(currentPlayer, false);
                 write(currentPlayer.getWriter(), "", '0');
@@ -403,14 +397,6 @@ public class Game extends Communication{
                 flush(currentPlayer.getWriter());
 
             }
-            case REROLL -> {
-                refillStore(currentPlayer);
-                currentPlayer.setGold(currentPlayer.getGold()-1);
-                currentPlayer.reorderCardIndices();
-                drawStoreState(currentPlayer, false);
-                write(currentPlayer.getWriter(), "", '0');
-                flush(currentPlayer.getWriter());
-            }
             case SWAP -> {
                 String[] splitInput = userInput.split("-");
                 int cardIndice1 = Integer.parseInt(splitInput[0])-currentPlayer.getStoreCardsSize()-1;
@@ -431,20 +417,54 @@ public class Game extends Communication{
 
     private void refillStore(Player player){
         player.resetStoreCards();
-        Collections.shuffle(this.store);
         int storeWidth = 1;
         int storeIndex = 0;
-        while(storeWidth <= MAX_WIDTH-MIN_CARD_WIDTH || storeIndex == store.size()){
-            Card card = this.store.get(storeIndex);
-            storeIndex++;
-            if(card.getWidth() + storeWidth <= MAX_WIDTH){
-                player.addStoreCard(new Card(card.getType()));
-                storeWidth += card.getWidth();
-                Collections.shuffle(this.store);
-                storeIndex = 0;
-                if(player.getStoreCardsSize() == 3) break;
+        int MIN_CARD_WIDTH = 11;
+        if(player.getEncounter() == null){
+            player.setDaysRemaining(player.getDaysRemaining()-1);
+            if(player.getDaysRemaining() > 0) {
+                Collections.shuffle(this.encounters);
+                while (storeWidth <= MAX_WIDTH - MIN_CARD_WIDTH || storeIndex == encounters.size()) {
+                    Card card = this.encounters.get(storeIndex);
+                    storeIndex++;
+                    if (card.getWidth() + storeWidth <= MAX_WIDTH) {
+                        player.addStoreCard(new Card(card.getType()));
+                        storeWidth += card.getWidth();
+                        Collections.shuffle(this.encounters);
+                        storeIndex = 0;
+                        if (player.getStoreCardsSize() == 3) break;
+                    }
+                }
             }
         }
+        else {
+
+            switch (player.getEncounter()) {
+                case MERCHANT -> {
+                    Card coinCard = new Card(Card.Type.COIN.ordinal());
+                    player.addStoreCard(coinCard);
+                    storeWidth += coinCard.getWidth();
+                    Collections.shuffle(this.items);
+                    while (storeWidth <= MAX_WIDTH - MIN_CARD_WIDTH || storeIndex == items.size()) {
+                        Card card = this.items.get(storeIndex);
+                        storeIndex++;
+                        if (card.getWidth() + storeWidth <= MAX_WIDTH && (card.getGold() <= player.getGold() || player.getGold() == 0 || player.getStoreCardsSize() == 3)) {
+                            player.addStoreCard(new Card(card.getType()));
+                            storeWidth += card.getWidth();
+                            Collections.shuffle(this.items);
+                            storeIndex = 0;
+                            if (player.getStoreCardsSize() == 4) break;
+                        }
+                    }
+                }
+
+            }
+        }
+
+
+
+
+
         player.reorderCardIndices();
     }
 
@@ -479,13 +499,14 @@ public class Game extends Communication{
     public void drawStoreState(Player player, boolean hideIndex){
         String text = CLEAR_SCREEN;
         if(!hideIndex)
-            text = text.concat(" (0)END TURN").concat(" (R)REFILL");
+            text = text.concat(" END TURN(0) DAYS REMAINING: ").concat(Integer.toString(player.getDaysRemaining()));
         for(Player p : this.players){
             text = text.concat(p.draw(false));
         }
         text = text.concat("\n").concat(drawCards(null, player.getStoreCards(), hideIndex, false));
         text = text.concat(drawCards(player, player.getHandCards(), hideIndex, false));
         text = text.concat("\n").concat(player.draw(true));
+
 
         write(player.getWriter(), text);
         flush(player.getWriter());

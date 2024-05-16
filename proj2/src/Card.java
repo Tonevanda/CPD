@@ -5,35 +5,55 @@ public class Card {
     private int _width = 0;
     private int MAX_WIDTH = 156;
 
-    enum Type{
+    public enum Type{
         LOCK,
+        COIN,
+        BANDAID,
+        SCROLL,
+        CAT,
+        BED,
+        CHOCOLATE,
+        SHOPPING_CART,
+        BOOK,
         SWORD,
         ANTEATER,
         SHIELD,
         AXE,
         WEIGHTS,
         CASTLE,
-        COIN,
-        BANDAID,
         SHOES,
         SHOVEL,
         FENCE,
         TEDDY,
-        SCROLL,
-        CAT,
+
         DRUMS,
         BOW,
         BRUSH,
         KNIFE,
-        BED,
-        CHOCOLATE,
-        SHOPPING_CART,
+
         SYRINGE,
         BOOTS,
         TURN_TABLE,
         SHIP,
-        CITY
+        CITY,
+        HOUSE,
+        MERCHANT
     }
+
+    public enum BookType{
+        CONDITIONING,
+        REGULAR_CUSTOMER
+    }
+
+
+
+    final static int BOOK_COUNT = BookType.values().length;
+
+    final static int ENCOUNTER_COUNT = 1;
+
+    final static int ITEMS_COUNT = 20;
+
+    final static int TOKENS_COUNT = Type.values().length - ENCOUNTER_COUNT - ITEMS_COUNT;
 
     final private Type _type;
 
@@ -51,7 +71,7 @@ public class Card {
 
     private int _originalDamage = 0;
 
-    private int _damage = 0;
+    private int _damage = -1;
 
     private int _originalArmor = -1;
     private int _armor = -1;
@@ -62,12 +82,9 @@ public class Card {
 
     private boolean _isInstant = false;
 
-    public static int getCardsCount(){
-        return Type.values().length;
-    }
 
     Card(int type){
-
+        //29
         this._type = Type.values()[type];
         String ascii = "";
         String power = "";
@@ -231,9 +248,8 @@ public class Card {
                                 `'-..,,,..-'`""";
 
                 this._width = 30;
-                this._gold = 2;
                 this._isInstant = true;
-                power = "Bought: +3$";
+                power = "Bought: +1$ and +30% Health";
             }
             case BANDAID -> {
                 ascii = """ 
@@ -248,19 +264,7 @@ public class Card {
                 this._width = 33;
                 this._gold = 1;
                 this._isInstant = true;
-                Random random = new Random();
-                this._rand = Math.abs(random.nextInt()) % 3;
-                switch(this._rand){
-                    case 0 ->{
-                        power = "Bought: Heal 100";
-                    }
-                    case 1 -> {
-                        power = "Bought: Heal 126";
-                    }
-                    case 2 -> {
-                        power = "Bought: Heal 30% of Health";
-                    }
-                }
+                randomize(getRandomNumber());
 
             }
             case SHOES -> {
@@ -471,42 +475,20 @@ public class Card {
                          \n \n""";
 
                 this._width = 28;
-                this._gold = 1;
                 this._isInstant = true;
-                Random random = new Random();
-                this._rand = Math.abs(random.nextInt()) % 5;
-                switch(this._rand){
-                    case 0 -> {
-                        power = "Bought: +20 maxHealth";
-                    }
-                    case 1 ->{
-                        this._gold = 5;
-                        power = "Bought: +50 maxHealth";
-                    }
-                    case 2 ->{
-                        power = "Bought: +2 Strength";
-                    }
-                    case 3 ->{
-                        this._gold = 5;
-                        power = "Bought: +4 Strength";
-                    }
-                    case 4 -> {
-                        this._gold = 5;
-                        power = "Bought: +6 Speed";
-                    }
-                }
+                randomize(getRandomNumber());
 
 
             }
             case CHOCOLATE -> {
                 ascii = """
-                         _________,-.___
+                        \n \n \n _________,-.___
                         |__      { {]_]
                         |__`---.__\\ \\_]
                         |  `---.___} }]_]_]
                         |_________/ {_]_]_]
                         \s
-                        \s""";
+                         \n \n \n""";
                 this._width = 20;
                 this._gold = 1;
                 power = "Sell: +10 MaxHealth";
@@ -602,19 +584,82 @@ public class Card {
                 power = "+3 Armor per ability triggered";
             }
             case CITY -> {
-                ascii = "                   ..======..\n" +
-                        "                   ||::: : |\n" +
-                        "              .~.===: : : :|   ..===.\n" +
-                        ".=======.~,   |\"|: :|::::::|   ||:::|\n" +
-                        "|: :: ::|\"|l_l|\"|:: |:;;:::|___!| ::|\n" +
-                        "::: :: :|\"||_||\"| : |: :: :|: : |:: |\n" +
-                        "|:===F=:|\"!/|\\!\"|::F|:====:|::_:|: :|\n" +
-                        "![_][I_]!//_:_\\\\![]I![_][_]!_[_]![]_!";
+                ascii = """
+
+                        \s
+                                           ..======..
+                                           ||::: : |
+                                      .~.===: : : :|   ..===.
+                        .=======.~,   |"|: :|::::::|   ||:::|
+                        |: :: ::|"|l_l|"|:: |:;;:::|___!| ::|
+                        ::: :: :|"||_||"| : |: :: :|: : |:: |
+                        |:===F=:|"!/|\\!"|::F|:====:|::_:|: :|
+                        ![_][I_]!//_:_\\\\![]I![_][_]!_[_]![]_!
+                        \s
+                        """;
                 this._width = 38;
                 this._gold = 6;
                 this._cooldown = 8;
                 this._armor = 8;
                 power = "+8 Armor and give armor gaining abilities +1 Armor";
+            }
+            case HOUSE -> {
+                ascii = """
+                                                    (_)
+                                            ________[_]________
+                                   /\\      /\\        ______    \\
+                                  /  \\    //_\\       \\    /\\    \\
+                           /\\    / /\\/\\  //___\\       \\__/  \\    \\
+                          /  \\  /\\/    \\//_____\\       \\ |[]|     \\
+                         /\\/\\/\\/       //_______\\       \\|__|      \\
+                        /      \\      /XXXXXXXXXX\\                  \\
+                                \\    /_I_II  I__I_\\__________________\\
+                                       I_I|  I__I_____[]_|_[]_____I
+                                       I_II  I__I_____[]_|_[]_____I
+                                       I II__I  I     XXXXXXX     I
+                        \s
+                        """;
+
+                this._width = 47;
+                this._gold = 12;
+                this._cooldown = 7;
+                power = "Heal 4. Whenever you heal, gain +1 Strength this fight";
+            }
+            case BOOK -> {
+                ascii = "      ,   ,   \n" +
+                        "     /////|   \n" +
+                        "    ///// |   \n" +
+                        "   |===|  |   \n" +
+                        "   |j  |  |   \n" +
+                        "   | g |  |   \n" +
+                        "   |  s| /   \n" +
+                        "   |===|/   \n" +
+                        "   '---'   ";
+
+                this._width = 15;
+                randomize(getRandomNumber());
+
+            }
+            case MERCHANT -> {
+                ascii = """
+                                     _____
+                                    /     \\
+                                  /- (*) |*)\\
+                                  |/\\.  _>/\\|
+                                      \\__/    |\\
+                                     _| |_   \\-/
+                                    /|\\__|\\  //
+                                   |/|   |\\\\//
+                                   ||| __|
+                                   /_\\| ||
+                                   \\_/| ||
+                                     || ||
+                                     /\\ \\ \\
+                                    ^^^^ ^^^\
+                        """;
+                this._width = 35;
+                this._isInstant = true;
+                power = "Sells Items";
             }
         }
 
@@ -637,6 +682,7 @@ public class Card {
         if(!power.isEmpty()){
             while(true){
                 if(power.length() <= this._width-1){
+                    if(power.startsWith(" "))power = power.substring(1);
                     this._description.add(power);
                     break;
                 }
@@ -649,6 +695,7 @@ public class Card {
                     power = Character.toString(line.charAt(line.length()-1)).concat(power);
                     line = line.substring(0, line.length()-1);
                 }
+                if(line.startsWith(" "))line = line.substring(1);
                 this._description.add(line);
             }
         }
@@ -660,6 +707,66 @@ public class Card {
             this._art = Arrays.asList(ascii.split("\n"));
     }
 
+    public int getRandomNumber(){
+        Random random = new Random();
+        return Math.abs(random.nextInt());
+    }
+
+    public void randomize(int random){
+        switch(this._type){
+            case BANDAID -> {
+                this._rand = random % 3;
+                switch(this._rand){
+                    case 0 ->{
+                        fillDescription("Bought: Heal 100");
+                    }
+                    case 1 -> {
+                        fillDescription("Bought: Heal 126");
+                    }
+                    case 2 -> {
+                        fillDescription("Bought: Heal 30% of Health");
+                    }
+                }
+            }
+            case BED -> {
+                this._rand = random % 5;
+                switch(this._rand){
+                    case 0 -> {
+                        this._gold = 1;
+                        fillDescription("Bought: +20 maxHealth");
+                    }
+                    case 1 ->{
+                        this._gold = 5;
+                        fillDescription("Bought: +50 maxHealth");
+                    }
+                    case 2 ->{
+                        this._gold = 1;
+                        fillDescription("Bought: +2 Strength");
+                    }
+                    case 3 ->{
+                        this._gold = 5;
+                        fillDescription("Bought: +4 Strength");
+                    }
+                    case 4 -> {
+                        this._gold = 5;
+                        fillDescription("Bought: +6 Speed");
+                    }
+                }
+            }
+            case BOOK -> {
+                this._rand = random % BookType.values().length;
+                switch(BookType.values()[this._rand]){
+                    case CONDITIONING -> {
+                        fillDescription("Your Strength also increases the Armor you gain in a fight. Bought: +3 Strength");
+                    }
+                    case REGULAR_CUSTOMER -> {
+                        fillDescription("When you sell a card, Heal 25");
+                    }
+                }
+            }
+        }
+    }
+
     public void setIndex(int index){this._index = index;}
 
     public void setGold(int gold){this._gold = gold;}
@@ -669,6 +776,8 @@ public class Card {
     public int getType(){return this._type.ordinal();}
 
     public int getGold(){return this._gold;}
+
+    public int getRand(){return this._rand;}
 
     public int getDamage(){return this._damage;}
 
@@ -789,7 +898,10 @@ public class Card {
                 }
                 case CITY -> {
                     friendlyPlayer.setArmor(friendlyPlayer.getArmor()+this._armor);
-
+                    friendlyPlayer.setArmorBuffing(friendlyPlayer.getArmorBuffing()+1);
+                }
+                case HOUSE -> {
+                    friendlyPlayer.setHealth(friendlyPlayer.getHealth()+4);
                 }
             }
             if(this._originalCooldown > 0) {
@@ -826,6 +938,7 @@ public class Card {
     }
 
     public void triggerOnBuyEffect(Player friendlyPlayer){
+        friendlyPlayer.setEncounter(null);
         switch(this._type){
             case AXE -> {
                 friendlyPlayer.setOriginalSpeed(friendlyPlayer.getOriginalSpeed()+2);
@@ -834,7 +947,8 @@ public class Card {
                 friendlyPlayer.setOriginalStrength(friendlyPlayer.getOriginalStrength()+1);
             }
             case COIN -> {
-                friendlyPlayer.setGold(friendlyPlayer.getGold()+3);
+                friendlyPlayer.setGold(friendlyPlayer.getGold()+1);
+                friendlyPlayer.setHealth(friendlyPlayer.getHealth()+30*(friendlyPlayer.getMaxHealth()-friendlyPlayer.getHealth())/100);
             }
             case BANDAID -> {
                 switch(this._rand){
@@ -890,8 +1004,19 @@ public class Card {
             }
             case BOOTS -> {
                 friendlyPlayer.setOriginalArmor(friendlyPlayer.getOriginalArmor()+20);
-                friendlyPlayer.setArmorBuffing(8);
+                friendlyPlayer.setOriginalArmorBuffing(friendlyPlayer.getOriginalArmorBuffing()+8);
 
+            }
+            case BOOK -> {
+                friendlyPlayer.activateSkill(this._rand);
+                switch(BookType.values()[this._rand]){
+                    case CONDITIONING -> {
+                        friendlyPlayer.setOriginalStrength(friendlyPlayer.getOriginalStrength()+3);
+                    }
+                }
+            }
+            case MERCHANT -> {
+                friendlyPlayer.setEncounter(this._type);
             }
         }
     }
@@ -905,7 +1030,19 @@ public class Card {
                 friendlyPlayer.setMaxHealth(friendlyPlayer.getMaxHealth()+10);
             }
             case BOOTS -> {
-                friendlyPlayer.setArmorBuffing(friendlyPlayer.getArmorBuffing()-8);
+                friendlyPlayer.setOriginalArmorBuffing(friendlyPlayer.getOriginalArmorBuffing()-8);
+            }
+            case BOOK -> {
+                friendlyPlayer.deactivateSkill(this._rand);
+                switch(BookType.values()[this._rand]){
+                    case CONDITIONING -> {
+                        for(Card card : friendlyPlayer.getHandCards()){
+                            if(card.getOrignalArmor() >= 0){
+                                card.setArmor(card.getArmor()-friendlyPlayer.getStrength());
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -938,6 +1075,14 @@ public class Card {
         }
     }
 
+    public void triggerOnGainingHealthEffect(Player friendlyPlayer){
+        switch(this._type){
+            case HOUSE -> {
+                friendlyPlayer.setStrength(friendlyPlayer.getStrength()+1);
+            }
+        }
+    }
+
     public String draw(int row, int height, int cooldownLinesCount, boolean hideIndex, boolean hideGold){
         String cooldown = Integer.toString(this._cooldown);
         String gold = Integer.toString(this._gold);
@@ -960,7 +1105,7 @@ public class Card {
                     startingIndex = this._width;
                 }
                 else {
-                    if (!hideGold || this._gold == 0) {
+                    if (!hideGold && this._gold > 0) {
                         text = text.concat(gold).concat("$ ");
                         startingIndex += gold.length() + 2;
                     }

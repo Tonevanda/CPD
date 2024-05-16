@@ -18,21 +18,26 @@ public class Player{
 
     private int _disconnectionTime;
 
-    private boolean _timedOut = false;
+    private boolean _timedOut = true;
 
 
 
 
-    private boolean _isDisconnected = false;
+    private boolean _isDisconnected = true;
 
     private boolean _alreadyDisconnectedOnce = false;
 
     //GAME
     private final String _name;
 
+    private final String _password;
+
     private int _rank;
 
     private int _previousRank;
+
+    private boolean _hasBeenWrittenToDB = true;
+
 
     private PrintWriter _writer;
 
@@ -64,22 +69,30 @@ public class Player{
 
     private int _armor = 0;
 
+    private int _originalArmorBuffing = 0;
+
     private int _armorBuffing = 0;
 
     private boolean _inGame = false;
 
     private boolean _isFighting = false;
 
-    public Player(String name, int rank, PrintWriter writer, BufferedReader reader, int timerInterval, int disconnectionTimeout, int currentTime){
-        this._name = name;
-        this._rank = rank;
-        this._previousRank = rank;
-        this._writer = writer;
-        this._reader = reader;
-        this._disconnectionTimeout = disconnectionTimeout;
-        this._timerInterval = timerInterval;
+    private final List<Integer> _skills = new ArrayList<>();
 
-        resetTimer(currentTime);
+    private Card.Type _encounter = null;
+
+    private int _daysRemaining = 6;
+
+    public Player(String name, String password, int rank, int timerInterval, int disconnectionTimeout, int currentTime){
+        this._name = name;
+        this._password = password;
+        this._rank = rank;
+        this._previousRank = this._rank;
+        this._previousTimerTime = currentTime;
+        this._disconnectionTimeout = disconnectionTimeout;
+        this._disconnectionTime = this._disconnectionTimeout;
+        this._timerInterval = timerInterval/1000;
+
         setTimer(0);
 
         resetPlayerGameInfo();
@@ -92,6 +105,8 @@ public class Player{
     public void setDisconnected(boolean isDisconnected){
         this._isDisconnected = isDisconnected;
     }
+
+    public void setTimedOut(boolean timedOut){this._timedOut = timedOut;}
 
     public void setAlreadyDisconnectedOnce(boolean alreadyDisconnectedOnce){this._alreadyDisconnectedOnce = alreadyDisconnectedOnce;}
 
@@ -145,9 +160,17 @@ public class Player{
         this._originalStrength = 0;
         this._originalArmor = 0;
         this._armor = 0;
+        this._originalArmorBuffing = 0;
+        this._armorBuffing = 0;
         this._handWidth = 1;
         this.hand.clear();
         this._isFighting = false;
+        this._skills.clear();
+        this._encounter = null;
+        for(int i = 0; i < Card.BOOK_COUNT; i++){
+            this._skills.add(0);
+        }
+        this._daysRemaining = 6;
         for(int i = 0; i < 4; i++){
             Card lock = new Card(0);
             this.hand.add(lock);
@@ -157,15 +180,23 @@ public class Player{
 
     }
 
+    public boolean hasRankChanged(){return this._rank != this._previousRank;}
+
     public String getServerState(){return this._serverState;}
 
     public boolean getInGame() { return this._inGame; }
 
-    public boolean hasPlayerDBInfoChanged(){return this._rank != this._previousRank;}
+    public boolean hasBeenWrittenToDB(){return this._hasBeenWrittenToDB;}
 
+    public Card.Type getEncounter(){
+        return this._encounter;
+    }
+
+    public int getDaysRemaining(){return this._daysRemaining;}
     public String getName(){
         return this._name;
     }
+    public String getPassword(){return this._password;}
 
     public int getRank(){
         return this._rank;
@@ -198,6 +229,8 @@ public class Player{
 
     public int getArmorBuffing(){return this._armorBuffing;}
 
+    public int getOriginalArmorBuffing(){return this._originalArmorBuffing;}
+
     public int getOriginalStrength(){return this._originalStrength;}
     public int getHealth(){return this._health;}
 
@@ -221,11 +254,31 @@ public class Player{
         if(this._rank < 0) this._rank = 0;
     }
 
+    public void activateSkill(int index){
+        this._skills.set(index, this._skills.get(index)+1);
+    }
+
+    public void deactivateSkill(int index){
+        this._skills.set(index, this._skills.get(index)-1);
+    }
+
+    public boolean isSkillActive(Card.BookType bookType){
+        return this._skills.get(bookType.ordinal()) > 0;
+    }
+
     public void setInGame(boolean inGame) { this._inGame = inGame; }
+
+    public void setPreviousRank(){this._previousRank = this._rank;}
+
+    public void setEncounter(Card.Type encounter){this._encounter = encounter;}
+
+    public void setDaysRemaining(int daysRemaining){this._daysRemaining = daysRemaining;}
 
     public void setIsFighting(boolean isFighting){this._isFighting = isFighting;}
 
     public void setServerState(String serverState){this._serverState = serverState;}
+
+    public void setHasBeenWrittenToDB(boolean hasBeenWrittenToDB){this._hasBeenWrittenToDB = hasBeenWrittenToDB;}
 
     public void setReader(BufferedReader reader){this._reader = reader;}
 
@@ -236,10 +289,12 @@ public class Player{
     public void setGold(int gold){this._gold = gold;}
 
     public void setSpeed(int speed){
-        for(Card card : this.hand){
-            int cooldown = card.getOrignalCooldown();
-            if(cooldown > 0){
-                card.setCooldown(card.getCooldown() - (Math.max(Math.min(100, speed),0) - this._speed)*cooldown/100);
+        if(_isFighting) {
+            for (Card card : this.hand) {
+                int cooldown = card.getOrignalCooldown();
+                if (cooldown > 0) {
+                    card.setCooldown(card.getCooldown() - (Math.max(Math.min(100, speed), 0) - this._speed) * cooldown / 100);
+                }
             }
         }
         this._speed = Math.min(speed, 100);
@@ -252,8 +307,13 @@ public class Player{
     }
 
     public void setStrength(int strength){
-        for(Card card : this.hand){
-            card.setDamage(card.getDamage() + strength-this._strength);
+        if(_isFighting) {
+            for (Card card : this.hand) {
+                card.setDamage(card.getDamage() + strength - this._strength);
+                if(isSkillActive(Card.BookType.CONDITIONING) && card.getOrignalArmor() >= 0){
+                    card.setArmor(card.getArmor() + strength - this._strength);
+                }
+            }
         }
         this._strength = strength;
 
@@ -264,9 +324,30 @@ public class Player{
         this._originalStrength = strength;
     }
 
-    public void setHealth(int health){this._health = Math.min(health, this._maxHealth);}
+    public void setHealth(int health){
+        if(_isFighting && this._maxHealth-this._health > 0){
+            for(Card card : this.hand){
+                card.triggerOnGainingHealthEffect(this);
+            }
+        }
+        this._health = Math.min(health, this._maxHealth);
+    }
 
-    public void setArmorBuffing(int armorBuff){this._armorBuffing = armorBuff;}
+    public void setArmorBuffing(int armorBuff){
+        if(_isFighting){
+            for(Card card : this.hand){
+                if(card.getOrignalArmor() >= 0){
+                    card.setArmor(card.getArmor() + armorBuff - this._armorBuffing);
+                }
+            }
+        }
+        this._armorBuffing = armorBuff;
+    }
+
+    public void setOriginalArmorBuffing(int armorBuff){
+        setArmorBuffing(this._armorBuffing+armorBuff-this._originalArmorBuffing);
+        this._originalArmorBuffing = armorBuff;
+    }
 
     public void setMaxHealth(int health){
         this._maxHealth = Math.max(1, health);
@@ -295,6 +376,9 @@ public class Player{
         this._speed = this._originalSpeed;
         this._strength = this._originalStrength;
         this._armor = this._originalArmor;
+        this._armorBuffing = this._originalArmorBuffing;
+        this._encounter = null;
+        this._daysRemaining = 6;
         for(Card card : this.hand){
             card.resetStats();
         }
@@ -310,6 +394,9 @@ public class Player{
     public void removeHandCard(int cardIndice){
         this._handWidth -= this.hand.get(cardIndice).getWidth();
         this.hand.remove(cardIndice);
+        if(isSkillActive(Card.BookType.REGULAR_CUSTOMER)){
+            setHealth(this._health+25);
+        }
     }
 
     public void increaseLockCosts(){
@@ -321,8 +408,11 @@ public class Player{
     }
 
     public void addHandCard(Card card){
+        int rand = card.getRand();
+        Card newCard = new Card(card.getType());
         this.hand.add(new Card(card.getType()));
         this._handWidth += card.getWidth();
+        if(rand != -1) newCard.randomize(rand);
     }
 
     public void swapCards(int cardIndice1, int cardIndice2){
@@ -339,11 +429,16 @@ public class Player{
             cardIndice++;
         }
         for(Card card : this.hand){
-            card.setDamage(card.getOriginalDamage()+this._originalStrength);
-            card.setCooldown(card.getOrignalCooldown()-(this._originalSpeed+card.getSpeed())*card.getOrignalCooldown()/100);
+            if(card.getOriginalDamage() >= 0){
+                card.setDamage(card.getOriginalDamage()+this._originalStrength);
+            }
+            if(card.getOrignalCooldown() > 0)card.setCooldown(card.getOrignalCooldown()-(this._originalSpeed+card.getSpeed())*card.getOrignalCooldown()/100);
             card.setIndex(cardIndice);
             if(card.getArmor() >= 0){
                 card.setArmor(card.getOrignalArmor()+this._armorBuffing);
+                if(isSkillActive(Card.BookType.CONDITIONING)){
+                    card.setArmor(card.getArmor()+this._originalStrength);
+                }
             }
             cardIndice++;
         }

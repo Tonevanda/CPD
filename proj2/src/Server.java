@@ -26,7 +26,7 @@ public class Server extends Communication{
 
     List<Player> simplePlayers = new LinkedList<>();
     List<Player> rankedPlayers = new ArrayList<>();
-    Map<String, Player> currentAuths = new HashMap<>();
+    Map<String, Player> auths = new HashMap<>();
 
 
     final int port = 8080;
@@ -36,6 +36,8 @@ public class Server extends Communication{
     private final int TIMER_INTERVAL = 1000;
 
     private final int RANK_QUEUE_TIMER_INTERVAL = 5000;
+
+    private final int DB_WRITE_TIMER_INTERVAL = 30000;
 
     private final int DISCONNECT_TIMEOUT = 30;
 
@@ -49,6 +51,8 @@ public class Server extends Communication{
     private final List<ReentrantLock> locks = new ArrayList<>();
 
     private final List<Card> gameStore = new ArrayList<>();
+
+    private final List<Card> gameEncounters = new ArrayList<>();
 
     enum State{
         AUTHENTICATION,
@@ -89,16 +93,14 @@ public class Server extends Communication{
                             player.resetTimer(timerTask.getTime());
                         }
 
-                        else if(state != State.MENU){
-                            socket.setSoTimeout(10);
-                        }
+
                     }
                     case MENU -> {
                         gamemode = handleMenu(reader, writer, player);
                         if(gamemode == 'q'){
                             state = State.QUIT;
-                            this.currentAuths.remove(player.getName());
-                            updateRank(player);
+                            player.setServerState(State.MENU.toString());
+                            player.setDisconnected(true);
                         }
                         else if(gamemode == 'a' || gamemode == 'b') {
                             if(gamemode == 'a')manageSimple();
@@ -111,7 +113,7 @@ public class Server extends Communication{
                     }
                     case QUEUE -> {
 
-                        if (this.currentAuths.get(player.getName()).getInGame()) {
+                        if (this.auths.get(player.getName()).getInGame()) {
                             state = State.GAME;
                             player.setServerState("GAME");
                             socket.setSoTimeout(10);
@@ -128,7 +130,7 @@ public class Server extends Communication{
                         if(player.getDisconnected()){
                             throw new SocketException();
                         }
-                        else if (!this.currentAuths.get(player.getName()).getInGame()){
+                        else if (!this.auths.get(player.getName()).getInGame()){
                             state = State.MENU;
                             socket.setSoTimeout(0);
                             player.resetTimer(this.timerTask.getTime());
@@ -149,9 +151,6 @@ public class Server extends Communication{
                     System.out.print("");
                     if(player.getTimedOut()){
                         System.out.println("Client: ".concat(player.getName()).concat(" has timed out"));
-                        this.locks.getFirst().lock();
-                        this.currentAuths.remove(player.getName());
-                        this.locks.getFirst().unlock();
                         if(gamemode == 'a' || gamemode == 'i'){
                             this.locks.get(1).lock();
                             removeFromQueue(player.getName(), this.simplePlayers);
@@ -164,13 +163,14 @@ public class Server extends Communication{
                         }
 
                         socket.close();
-                        updateRank(player);
                         break;
                     }
                 }
 
             }
         }
+        if(player != null)player.setTimedOut(true);
+
 
 
 
@@ -200,17 +200,13 @@ public class Server extends Communication{
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
-        Player player;
-        if(this.currentAuths.containsKey(name)) {
-            player = this.currentAuths.get(name);
-            player.setReader(reader);
-            player.setWriter(writer);
+        Player player = this.auths.get(name);
+        if(player.getDisconnected()) {
             manageSimple();
         }
-        else {
-            player = new Player(name, rank, writer, reader, TIMER_INTERVAL/1000, DISCONNECT_TIMEOUT, this.timerTask.getTime());
-            currentAuths.put(name, player);
-        }
+        player.setReader(reader);
+        player.setWriter(writer);
+        player.setDisconnected(false);
 
         System.out.println("New client connected: " + name);
         System.out.println("User authenticated: " + name + " with rank: " + rank);
@@ -244,7 +240,26 @@ public class Server extends Communication{
 
     }
 
+    private void init_auths(){
+        JSONArray db = loadJson();
+
+        for(int i = 0; i < db.length(); i++){
+            JSONObject user_info = db.getJSONObject(i);
+
+            this.auths.put(user_info.getString("username"),
+                    new Player(user_info.getString("username"),
+                            user_info.getString("password"),
+                            user_info.getInt("rank"),
+                            TIMER_INTERVAL,
+                            DISCONNECT_TIMEOUT,
+                            timerTask.getTime()
+                    ));
+
+        }
+    }
+
     private void startServer() throws KeyStoreException, IOException, UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException, KeyManagementException {
+        init_auths();
         // Load server KeyStore
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(new FileInputStream("certificates/serverkeystore.jks"), "password".toCharArray());
@@ -262,22 +277,34 @@ public class Server extends Communication{
         try (SSLServerSocket serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(port)) {
             System.out.println("Server is listening on port " + port);
 
-            for(int i = 1; i < Card.getCardsCount(); i++){
+
+
+            for(int i = Card.TOKENS_COUNT; i < Card.ITEMS_COUNT+Card.TOKENS_COUNT; i++){
                 this.gameStore.add(new Card(i));
             }
+            for(int i = Card.ITEMS_COUNT+Card.TOKENS_COUNT; i < Card.ENCOUNTER_COUNT+Card.TOKENS_COUNT+Card.ITEMS_COUNT; i++){
+                this.gameEncounters.add(new Card(i));
+            }
+
 
             this.timer.schedule(this.timerTask, 0, TIMER_INTERVAL);
 
             Thread.startVirtualThread(()->{
 
-                int previous_time = 0;
+                int previous_time_rank = 0;
+                int previous_time_db = 0;
 
                 while(true){
                     System.out.print("");
-                    if(timerTask.getTime() >= previous_time + RANK_QUEUE_TIMER_INTERVAL/1000|| timerTask.getTime()+RANK_QUEUE_TIMER_INTERVAL/1000 <= previous_time  && this.rankedPlayers.size() >= NUM_PLAYERS){
-                        previous_time = timerTask.getTime();
+                    if(timerTask.getTime() >= previous_time_rank + RANK_QUEUE_TIMER_INTERVAL/1000|| timerTask.getTime()+RANK_QUEUE_TIMER_INTERVAL/1000 <= previous_time_rank  && this.rankedPlayers.size() >= NUM_PLAYERS){
+                        previous_time_rank = timerTask.getTime();
                         manageRanked();
                     }
+                    if(timerTask.getTime() >= previous_time_db + DB_WRITE_TIMER_INTERVAL/1000|| timerTask.getTime()+DB_WRITE_TIMER_INTERVAL/1000 <= previous_time_db){
+                        previous_time_db = timerTask.getTime();
+                        updateDB();
+                    }
+
                 }
 
             });
@@ -379,9 +406,15 @@ public class Server extends Communication{
             System.out.println("Managing simple game");
             // Get the first NUM_PLAYERS players
             List<Player> gamePlayers = new ArrayList<>();
-            for (int i = 0; i < NUM_PLAYERS; i++) {
-                gamePlayers.add(this.simplePlayers.getFirst());
-                this.simplePlayers.removeFirst();
+            int playerCount = NUM_PLAYERS;
+            for (int i = 0; i < Math.min(playerCount, this.simplePlayers.size()); i++) {
+                Player player = this.simplePlayers.get(i);
+                if(!player.getDisconnected()) {
+                    gamePlayers.add(this.simplePlayers.get(i));
+                    this.simplePlayers.remove(i);
+                    i--;
+                }
+                else playerCount++;
             }
 
             locks.get(1).unlock();
@@ -398,10 +431,10 @@ public class Server extends Communication{
         Thread.startVirtualThread(()->{
 
             for(Player player : players){
-                this.currentAuths.get(player.getName()).setInGame(true);
+                this.auths.get(player.getName()).setInGame(true);
             }
             Collections.shuffle(players);
-            Game game = new Game(players, this.gameStore, gamemode, this.timerTask);
+            Game game = new Game(players, this.gameEncounters, this.gameStore, gamemode, this.timerTask);
             try {
                 game.run();
 
@@ -413,77 +446,89 @@ public class Server extends Communication{
     }
 
 
-    private void updateRank(Player player){
+    private void updateDB(){
 
-        if(player.hasPlayerDBInfoChanged()) {
 
-            locks.getFirst().lock();
-            String name = player.getName();
-            int newRank = player.getRank();
-            JSONArray db = loadJson();
-            try {
-                for (int i = 0; i < db.length(); i++) {
-                    if (db.getJSONObject(i).getString("username").equals(name)) {
-
-                        db.getJSONObject(i).put("rank", newRank);
-                        System.out.println(db.getJSONObject(i).getInt("rank") + db.getJSONObject(i).getString("username"));
-                        saveJson(db);
-                        return;
-                    }
-                }
-            } finally {
-                locks.getFirst().unlock();
+        locks.getFirst().lock();
+        JSONArray db = loadJson();
+        for (int i = 0; i < db.length(); i++){
+            JSONObject user_info = db.getJSONObject(i);
+            Player player = this.auths.get(user_info.getString("username"));
+            player.setHasBeenWrittenToDB(true);
+            if(player.hasRankChanged()) {
+                user_info.put("rank", player.getRank());
             }
-
-            System.out.println("Can't update rank, because user does not exist");
         }
+        for(Player player : this.auths.values()){
+            if(!player.hasBeenWrittenToDB()){
+                JSONObject user = createUser(player.getName(), player.getPassword());
+                db.put(user);
+            }
+            player.setHasBeenWrittenToDB(false);
+            player.setPreviousRank();
+        }
+        saveJson(db);
+        this.locks.getFirst().unlock();
+
+
+        System.out.println("Updated Database");
     }
 
     private int authenticateClient(String name, String password, PrintWriter writer) throws NoSuchAlgorithmException {
         password = hashPassword(password);
-        locks.getFirst().lock();
-        try {
-            // Load the JSON file
-            JSONArray db = loadJson();
-
-            // Check if the name and password are in the database
-            for(int i = 0; i < db.length(); i++){
-                if(db.getJSONObject(i).getString("username").equals(name) && db.getJSONObject(i).getString("password").equals(password)){
-                    if(currentAuths.containsKey(name)){
-                        Player player = currentAuths.get(name);
-                        if(!player.getTimedOut() && player.getDisconnected()){
-                            if((!player.getInGame() && State.valueOf(player.getServerState()) == State.GAME) || (player.getInGame() && State.valueOf(player.getServerState()) == State.QUEUE)){
-                                player.setServerState(State.MENU.toString());
-                            }
-                            write(writer, "Successfully authenticated!", player.getServerState().charAt(0));
-                            flush(writer);
-                            return player.getRank();
-                        }
-                        write(writer, "User already authenticated", '1');
-                        flush(writer);
-                        return -1;
-                    }
+        // Load the JSON file
+        if(this.auths.containsKey(name)) {
+            Player player = this.auths.get(name);
+            if(player.getPassword().equals(password)) {
+                if(player.getTimedOut() && player.getDisconnected()){
                     write(writer, "Successfully authenticated!", '0');
                     flush(writer);
-                    return db.getJSONObject(i).getInt("rank");
-                } else if (db.getJSONObject(i).getString("username").equals(name) && !db.getJSONObject(i).getString("password").equals(password)) {
-                    write(writer, "Wrong password", '1');
+                    return player.getRank();
+                }
+                else if(!player.getTimedOut() && !player.getDisconnected()) {
+                    write(writer, "User already authenticated", '1');
                     flush(writer);
                     return -1;
                 }
+                else {
+                    if((!player.getInGame() && State.valueOf(player.getServerState()) == State.GAME) || (player.getInGame() && State.valueOf(player.getServerState()) == State.QUEUE)){
+                        player.setServerState(State.MENU.toString());
+                    }
+                    write(writer, "Successfully authenticated!", player.getServerState().charAt(0));
+                    flush(writer);
+                    return player.getRank();
+                }
+
             }
-            // If the name is not in the database, create new user account
-            JSONObject user = createUser(name, password);
-            db.put(user);
-            write(writer, "New account has been created!", '0');
+            else {
+                write(writer, "Wrong password", '1');
+                flush(writer);
+                return -1;
+            }
+        }
+        this.locks.getFirst().lock();
+        if(!this.auths.containsKey(name)) {
+            Player newPlayer = new Player(name, password, 0,
+                    TIMER_INTERVAL, DISCONNECT_TIMEOUT, timerTask.getTime());
+
+            this.auths.put(name, newPlayer);
+        }
+        else{
+            write(writer, "User already authenticated", '1');
             flush(writer);
+            return -1;
+        }
+        this.locks.getFirst().unlock();
+
+
+            // If the name is not in the database, create new user account
+            //JSONObject user = createUser(name, password);
+            //db.put(user);
+        write(writer, "New account has been created!", '0');
+        flush(writer);
 
             // Save the new user account to the database
-            saveJson(db);
-            System.out.println("Saved new user account to database");
-        } finally {
-            locks.getFirst().unlock();
-        }
+            //saveJson(db);
 
         return 0;
     }
