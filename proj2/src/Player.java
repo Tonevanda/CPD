@@ -430,11 +430,8 @@ public class Player{
 
     //adds a new card to your hand
     public void addHandCard(Card card){
-        int rand = card.getRand();
-        Card newCard = new Card(card.getType().ordinal());
-        this.hand.add(new Card(card.getType().ordinal()));
+        this.hand.add(new Card(card.getType().ordinal(), card.getRand()));
         this._handWidth += card.getWidth();
-        if(rand != -1) newCard.randomize(rand);
     }
 
     //swaps 2 cards positions from your hand
@@ -481,7 +478,10 @@ public class Player{
     }
 
     //take damage
-    public void takeDamage(int damage){
+    public void takeDamage(int damage, Player enemyPlayer){
+        if(damage > 0 && enemyPlayer.isSkillActive(Card.BookType.DRAIN)){
+            enemyPlayer.setHealth(enemyPlayer.getHealth()+1);
+        }
         if(this._armor > 0){
             this._armor = Math.max(0, this._armor - damage);
         }

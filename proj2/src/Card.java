@@ -44,7 +44,8 @@ public class Card {
 
     public enum BookType{
         CONDITIONING,
-        REGULAR_CUSTOMER
+        REGULAR_CUSTOMER,
+        DRAIN
     }
 
 
@@ -87,6 +88,10 @@ public class Card {
     private boolean _isInstant = false;
 
 
+    Card(int type, int rand){
+        this(type);
+        randomize(rand);
+    }
     //Constructs the Card given its type
     Card(int type){
         //29
@@ -269,7 +274,7 @@ public class Card {
                 this._width = 33;
                 this._gold = 1;
                 this._isInstant = true;
-                this._rand = getRandomNumber();
+                randomize(getRandomNumber());
 
             }
             case SHOES -> {
@@ -481,7 +486,7 @@ public class Card {
 
                 this._width = 28;
                 this._isInstant = true;
-                this._rand = getRandomNumber();
+                randomize(getRandomNumber());
 
 
             }
@@ -642,7 +647,7 @@ public class Card {
                         "   '---'   ";
 
                 this._width = 15;
-                this._rand = getRandomNumber();
+                randomize(getRandomNumber());
 
             }
             case MERCHANT -> {
@@ -767,6 +772,7 @@ public class Card {
         switch(this._type){
             case BANDAID -> {
                 this._rand = random % 3;
+                this._description.clear();
                 switch(this._rand){
                     case 0 ->{
                         fillDescription("Bought: Heal 100");
@@ -781,6 +787,7 @@ public class Card {
             }
             case BED -> {
                 this._rand = random % 5;
+                this._description.clear();
                 switch(this._rand){
                     case 0 -> {
                         this._gold = 1;
@@ -806,12 +813,17 @@ public class Card {
             }
             case BOOK -> {
                 this._rand = random % BookType.values().length;
+                this._description.clear();
+                System.out.println(this._rand);
                 switch(BookType.values()[this._rand]){
                     case CONDITIONING -> {
                         fillDescription("Your Strength also increases the Armor you gain in a fight. Bought: +3 Strength");
                     }
                     case REGULAR_CUSTOMER -> {
                         fillDescription("When you sell a card, Heal 25");
+                    }
+                    case DRAIN -> {
+                        fillDescription("+1 Health whenever you deal damage");
                     }
                 }
             }
@@ -925,7 +937,7 @@ public class Card {
         if(this._cooldown <= 0) {
             switch (this._type) {
                 case SWORD, ANTEATER, AXE, SHOVEL, BOW, BRUSH -> {
-                    enemyPlayer.takeDamage(this._damage);
+                    enemyPlayer.takeDamage(this._damage, friendlyPlayer);
                 }
                 case WEIGHTS -> {
                     friendlyPlayer.setStrength(friendlyPlayer.getStrength()+3);
@@ -941,7 +953,7 @@ public class Card {
                     friendlyPlayer.setSpeed(friendlyPlayer.getSpeed() + friendlyPlayer.getStrength());
                 }
                 case KNIFE -> {
-                    enemyPlayer.takeDamage(this._damage);
+                    enemyPlayer.takeDamage(this._damage, enemyPlayer);
                     setDamage(this._damage*2);
                 }
                 case SYRINGE -> {

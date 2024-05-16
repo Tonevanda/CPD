@@ -530,6 +530,9 @@ public class Game extends Communication{
                     mosquito.setOriginalSpeed(23);
                     mosquito.setGold(2);
                     mosquito.getHandCards().clear();
+                    Card drainBook = new Card(Card.Type.BOOK.ordinal(), Card.BookType.DRAIN.ordinal());
+                    drainBook.triggerOnBuyEffect(mosquito);
+                    mosquito.addHandCard(drainBook);
                     mosquito.addHandCard(new Card(Card.Type.SHOVEL.ordinal()));
                     fight.add(mosquito);
                     this.fights.add(fight);
