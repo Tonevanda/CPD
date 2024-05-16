@@ -8,6 +8,7 @@ public class Game extends Communication{
 
     final private int CARD_HEIGHT = 18;
 
+    private final List<Integer> books;
     private final List<Card> items;
 
     private final List<Card> encounters;
@@ -51,10 +52,11 @@ public class Game extends Communication{
     private Player nonPlayingPlayer = null;
 
     //initializes the class Game
-    public Game(List<Player> players, List<Card> encounters, List<Card> items, char gamemode, MyTimerTask timerTask){
+    public Game(List<Player> players, List<Card> encounters, List<Card> items, List<Integer> books, char gamemode, MyTimerTask timerTask){
 
         this.encounters = encounters;
         this.items = items;
+        this.books = books;
         this.timerTask = timerTask;
 
         for(Player player : players){
@@ -121,6 +123,7 @@ public class Game extends Communication{
                                             leaveGame(player1);
                                         }
                                         else if(player2.getHealth() <= 0){
+                                            player.resetEffects();
                                             player.setStoreCards(player2.getStoreCards());
                                             player.reorderCardIndices();
                                             drawStoreState(player, false);
@@ -128,6 +131,7 @@ public class Game extends Communication{
                                             flush(player.getWriter());
                                         }
                                         else if(player.getTime() >= 30){
+                                            player.resetEffects();
                                             refillStore(player);
                                             player.reorderCardIndices();
                                             drawStoreState(player, false);
@@ -158,7 +162,14 @@ public class Game extends Communication{
                                 p.setIsFighting(true);
                                 fight.add(p);
                                 if(fight.size() == 2){
+                                    if(fight.getFirst().isSkillActive(Card.BookType.GREED)){
+                                        fight.getFirst().setStrength(fight.getFirst().getStrength()+fight.getLast().getGold());
+                                    }
+                                    if(fight.getLast().isSkillActive(Card.BookType.GREED)){
+                                        fight.getLast().setStrength(fight.getLast().getStrength()+fight.getFirst().getGold());
+                                    }
                                     this.fights.add(fight);
+
                                     drawFightState(fight, time);
                                     fight = new ArrayList<>();
                                 }
@@ -198,7 +209,7 @@ public class Game extends Communication{
                                 }
                                 else player.resetEffects();
 
-
+                                player.setDaysRemaining(6);
 
                                 player.setIsFighting(false);
                                 refillStore(player);
@@ -409,6 +420,11 @@ public class Game extends Communication{
                 return MoveType.INVALID;
             }
         }
+        if(card.getType() == Card.Type.BOOK){
+            write(currentPlayer.getWriter(), "You can't sell Skills", '0');
+            flush(currentPlayer.getWriter());
+            return MoveType.INVALID;
+        }
         return MoveType.SELL;
     }
 
@@ -488,8 +504,6 @@ public class Game extends Communication{
                         currentCards.add(card.getType());
                         player.addStoreCard(new Card(card.getType().ordinal()));
                         storeWidth += card.getWidth();
-                        Collections.shuffle(this.encounters);
-                        storeIndex = 0;
                         if (player.getStoreCardsSize() == 3) break;
                     }
                 }
@@ -503,15 +517,13 @@ public class Game extends Communication{
                     storeWidth += coinCard.getWidth();
                     currentCards.add(coinCard.getType());
                     Collections.shuffle(this.items);
-                    while (storeWidth <= MAX_WIDTH - MIN_CARD_WIDTH && storeIndex <= items.size()) {
+                    while (storeWidth <= MAX_WIDTH - MIN_CARD_WIDTH && storeIndex < items.size()) {
                         Card card = this.items.get(storeIndex);
                         storeIndex++;
                         if (card.getWidth() + storeWidth <= MAX_WIDTH && !currentCards.contains(card.getType()) && (card.getGold() <= player.getGold() || player.getGold() == 0 || player.getStoreCardsSize() == 3)) {
                             currentCards.add(card.getType());
                             player.addStoreCard(new Card(card.getType().ordinal()));
                             storeWidth += card.getWidth();
-                            Collections.shuffle(this.items);
-                            storeIndex = 0;
                             if (player.getStoreCardsSize() == 4) break;
                         }
                     }
@@ -522,13 +534,11 @@ public class Game extends Communication{
                     fight.add(player);
                     Player mosquito = new Player("Giant Mosquito", "", -1);
                     Card treasure = new Card(Card.Type.TREASURE.ordinal());
-                    treasure.setArmor(2);
                     treasure.fillDescription("Bought: +2$");
                     mosquito.addStoreCard(treasure);
                     mosquito.setIsFighting(true);
                     mosquito.setMaxHealth(25);
                     mosquito.setOriginalSpeed(23);
-                    mosquito.setGold(2);
                     mosquito.getHandCards().clear();
                     Card drainBook = new Card(Card.Type.BOOK.ordinal(), Card.BookType.DRAIN.ordinal());
                     drainBook.triggerOnBuyEffect(mosquito);
@@ -536,9 +546,44 @@ public class Game extends Communication{
                     mosquito.addHandCard(new Card(Card.Type.SHOVEL.ordinal()));
                     fight.add(mosquito);
                     this.fights.add(fight);
-                    player.setTimer(0);
+                    player.setTimer(-2);
 
 
+                }
+                case SENSEI -> {
+                    Collections.shuffle(this.books);
+                    while (storeIndex < Card.BOOK_COUNT) {
+                        int rand = this.books.get(storeIndex);
+                        storeIndex++;
+                        if (!currentCards.contains(Card.Type.values()[rand]) && !player.isSkillActive(Card.BookType.values()[rand])) {
+                            currentCards.add(Card.Type.values()[rand]);
+                            player.addStoreCard(new Card(Card.Type.BOOK.ordinal(), rand));
+                            if (player.getStoreCardsSize() == 3) break;
+                        }
+                    }
+                    Card coinCard = new Card(Card.Type.COIN.ordinal());
+                    player.addStoreCard(coinCard);
+                }
+                case SNAKE -> {
+                    player.setIsFighting(true);
+                    List<Player> fight = new ArrayList<>();
+                    fight.add(player);
+                    Player snake = new Player("Snake", "", -1);
+                    Card treasure = new Card(Card.Type.TREASURE.ordinal());
+                    treasure.fillDescription("Bought: +2$");
+                    snake.addStoreCard(treasure);
+                    snake.setIsFighting(true);
+                    snake.setMaxHealth(34);
+                    snake.setOriginalSpeed(16);
+                    snake.setOriginalArmor(3);
+                    snake.getHandCards().clear();
+                    Card lashOutBook = new Card(Card.Type.BOOK.ordinal(), Card.BookType.LASH_OUT.ordinal());
+                    lashOutBook.triggerOnBuyEffect(snake);
+                    snake.addHandCard(lashOutBook);
+                    snake.addHandCard(new Card(Card.Type.SHOVEL.ordinal()));
+                    fight.add(snake);
+                    this.fights.add(fight);
+                    player.setTimer(-2);
                 }
 
             }

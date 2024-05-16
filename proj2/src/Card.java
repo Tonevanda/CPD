@@ -39,20 +39,24 @@ public class Card {
         CITY,
         HOUSE,
         MERCHANT,
-        MOSQUITO
+        MOSQUITO,
+        SENSEI,
+        SNAKE
     }
 
     public enum BookType{
         CONDITIONING,
         REGULAR_CUSTOMER,
-        DRAIN
+        DRAIN,
+        LASH_OUT,
+        GREED
     }
 
 
 
     final static int BOOK_COUNT = BookType.values().length;
 
-    final static int ENCOUNTER_COUNT = 2;
+    final static int ENCOUNTER_COUNT = 4;
 
     final static int ITEMS_COUNT = 20;
 
@@ -712,6 +716,38 @@ public class Card {
                 this._width = 16;
                 this._isInstant = true;
             }
+            case SENSEI -> {
+                ascii = """
+                        \s
+                                .===
+                               / __)        _
+                               (  ||_.''.  {_}
+                        ----    | =/ \\   /' :
+                               /\\_~/() \\__.'     ____
+                        ----  |_   \\   //  |''''`    |-'8,
+                         -- _ :  |_ '-[]___/   '.....\\--.O
+                           {_}'' .'\\ //  |':````
+                            '...'   /\\\\_/    `,
+                                   //|\\ '.._.'
+                                  // //
+                                  \n \n
+                        """;
+
+                this._width = 35;
+                this._isInstant = true;
+                power = "Learn a new skill";
+            }
+            case SNAKE -> {
+                ascii = "\n \n \n \n \n                       ____\n" +
+                        "   ____________________/ O  \\___/\n" +
+                        "  <_/_\\_/_\\_/_\\_/_\\_/_______/   \\\n \n \n \n \n ";
+                this._width = 35;
+                this._isInstant = true;
+                this._health = 34;
+                this._speed = 16;
+                this._armor = 3;
+                power = "Reward: +2$";
+            }
         }
 
         fillArt(ascii);
@@ -824,6 +860,12 @@ public class Card {
                     }
                     case DRAIN -> {
                         fillDescription("+1 Health whenever you deal damage");
+                    }
+                    case LASH_OUT -> {
+                        fillDescription("Inflicts 1 Poison the first time your opponent attacks you.");
+                    }
+                    case GREED -> {
+                        fillDescription("At start of fight, gain Strength equal to opponent's Gold");
                     }
                 }
             }
@@ -1089,7 +1131,7 @@ public class Card {
                     }
                 }
             }
-            case MERCHANT, MOSQUITO -> {
+            case MERCHANT, MOSQUITO, SENSEI, SNAKE -> {
                 friendlyPlayer.setEncounter(this._type);
             }
 
@@ -1194,8 +1236,12 @@ public class Card {
                         text = text.concat("Health:").concat(Integer.toString(this._health));
                         startingIndex += Integer.toString(this._health).length() + 7;
                         if(this._speed > 0){
-                            text = text.concat(" Speed: ").concat(Integer.toString(this._speed));
-                            startingIndex += Integer.toString(this._speed).length() + 8;
+                            text = text.concat(" Speed:").concat(Integer.toString(this._speed));
+                            startingIndex += Integer.toString(this._speed).length() + 7;
+                        }
+                        if(this._armor > 0){
+                            text = text.concat(" Armor:").concat(Integer.toString(this._armor));
+                            startingIndex += Integer.toString(this._armor).length() + 7;
                         }
                     }
                     if (this._originalCooldown >= 0) {

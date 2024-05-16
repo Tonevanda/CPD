@@ -133,5 +133,6 @@ The stats of the game are the following:
 - Armor: Extra Health that blocks the entirety of an attack once it's removed;
 - Strength: Increases your card's damage by this amount;
 - Speed: Speeds up the cooldowns of your card's by this amount (in percentage);
+- Poison: Take this amount of damage every second;
 
 

@@ -73,6 +73,12 @@ public class Player{
 
     private int _armorBuffing = 0;
 
+    private int _originalPoison = 0;
+
+    private int _poison = 0;
+
+    private boolean _hasTakenDamage = false;
+
     private boolean _inGame = false;
 
     private boolean _isFighting = false;
@@ -167,11 +173,14 @@ public class Player{
         this._armor = 0;
         this._originalArmorBuffing = 0;
         this._armorBuffing = 0;
+        this._originalPoison = 0;
+        this._poison = 0;
         this._handWidth = 1;
         this.hand.clear();
         this._isFighting = false;
         this._skills.clear();
         this._encounter = null;
+        this._hasTakenDamage = false;
         for(int i = 0; i < Card.BOOK_COUNT; i++){
             this._skills.add(0);
         }
@@ -247,6 +256,10 @@ public class Player{
     public int getArmor(){return this._armor;}
 
     public int getOriginalArmor(){return this._originalArmor;}
+
+    public int getPoison(){return this._poison;}
+
+    public int getOriginalPoison(){return this._originalPoison;}
 
     public int getHandCardsCount() { return this.hand.size(); }
 
@@ -382,6 +395,15 @@ public class Player{
         this._originalArmor = armor;
     }
 
+    public void setPoison(int poison){
+        this._poison = poison;
+    }
+
+    public void setOriginalPoison(int originalPoison){
+        setPoison(this._poison + originalPoison - this._originalPoison);
+        this._originalPoison = originalPoison;
+    }
+
     //clears the store
     public void resetStoreCards(){this.storeCards.clear();}
 
@@ -392,8 +414,9 @@ public class Player{
         this._strength = this._originalStrength;
         this._armor = this._originalArmor;
         this._armorBuffing = this._originalArmorBuffing;
+        this._poison = this._originalPoison;
         this._encounter = null;
-        this._daysRemaining = 6;
+        this._hasTakenDamage = false;
         for(Card card : this.hand){
             card.resetStats();
         }
@@ -479,6 +502,12 @@ public class Player{
 
     //take damage
     public void takeDamage(int damage, Player enemyPlayer){
+        if(this._isFighting && !this._hasTakenDamage && damage > 0){
+            this._hasTakenDamage = true;
+            if(isSkillActive(Card.BookType.LASH_OUT)){
+                enemyPlayer.setPoison(this._poison+1);
+            }
+        }
         if(damage > 0 && enemyPlayer.isSkillActive(Card.BookType.DRAIN)){
             enemyPlayer.setHealth(enemyPlayer.getHealth()+1);
         }
@@ -497,6 +526,9 @@ public class Player{
 
             card.triggerCooldownEffect(this, enemyPlayer, i);
         }
+        if(this._poison > 0){
+            takeDamage(this._poison, enemyPlayer);
+        }
     }
 
     //draw the player's information on the terminal
@@ -511,6 +543,7 @@ public class Player{
             if(!_isFighting)text = text.concat(" $").concat(Integer.toString(_gold));
             if(_speed > 0)text = text.concat(" Speed: ").concat(Integer.toString(_speed));
             if(_strength > 0)text = text.concat(" Strength: ").concat(Integer.toString(_strength));
+            if(_poison > 0) text = text.concat(" Poison: ").concat(Integer.toString(_poison));
             text = text.concat(" Health: ").concat(Integer.toString(_health));
             if(!_isFighting)text = text.concat("/").concat(Integer.toString(_maxHealth));
             if(_armor > 0) text = text.concat("+").concat(Integer.toString(_armor));

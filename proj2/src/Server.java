@@ -54,6 +54,8 @@ public class Server extends Communication{
 
     private final List<Card> gameEncounters = new ArrayList<>();
 
+    private final List<Integer> gameBooks = new ArrayList<>();
+
     enum State{
         AUTHENTICATION,
         MENU,
@@ -289,6 +291,9 @@ public class Server extends Communication{
             for(int i = Card.TOKENS_COUNT; i < Card.ITEMS_COUNT+Card.TOKENS_COUNT; i++){
                 this.gameStore.add(new Card(i));
             }
+            for(int i = 0; i < Card.BOOK_COUNT; i++){
+                this.gameBooks.add(i);
+            }
             for(int i = Card.ITEMS_COUNT+Card.TOKENS_COUNT; i < Card.ENCOUNTER_COUNT+Card.TOKENS_COUNT+Card.ITEMS_COUNT; i++){
                 this.gameEncounters.add(new Card(i));
             }
@@ -445,7 +450,7 @@ public class Server extends Communication{
                 this.auths.get(player.getName()).setInGame(true);
             }
             Collections.shuffle(players);
-            Game game = new Game(players, this.gameEncounters, this.gameStore, gamemode, this.timerTask);
+            Game game = new Game(players, this.gameEncounters, this.gameStore, this.gameBooks, gamemode, this.timerTask);
             try {
                 game.run();
 
