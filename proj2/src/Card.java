@@ -83,6 +83,7 @@ public class Card {
     private boolean _isInstant = false;
 
 
+    //Constructs the Card given it's type
     Card(int type){
         //29
         this._type = Type.values()[type];
@@ -671,6 +672,7 @@ public class Card {
 
     }
 
+    //resets the cards stats after a fight has ended
     public void resetStats(){
         setCooldown(this._originalCooldown);
         setDamage(this._originalDamage);
@@ -678,6 +680,7 @@ public class Card {
         setArmor(this._originalArmor);
     }
 
+    //fills the description part of the card
     public void fillDescription(String power){
         if(!power.isEmpty()){
             while(true){
@@ -702,16 +705,19 @@ public class Card {
 
     }
 
+    //fills the art part of the card
     public void fillArt(String ascii){
         if(!ascii.isEmpty())
             this._art = Arrays.asList(ascii.split("\n"));
     }
 
+    //generates a random number
     public int getRandomNumber(){
         Random random = new Random();
         return Math.abs(random.nextInt());
     }
 
+    //generates different card attributes given a random number
     public void randomize(int random){
         switch(this._type){
             case BANDAID -> {
@@ -773,7 +779,7 @@ public class Card {
 
     public int getWidth(){return this._width;}
 
-    public int getType(){return this._type.ordinal();}
+    public Type getType(){return this._type;}
 
     public int getGold(){return this._gold;}
 
@@ -800,6 +806,7 @@ public class Card {
         if(this._originalCooldown > 0) this._cooldown = Math.max(this._cooldown, 1);
     }
 
+    //sets the card damage and some specific cards need to change it's description to match the new damage
     public void setDamage(int damage){
         this._damage = damage;
         switch(this._type){
@@ -826,6 +833,7 @@ public class Card {
         }
     }
 
+    //sets the card armor and some specific cards need to change it's description to match the new armor
     public void setArmor(int armor){
         this._armor = armor;
         switch(this._type){
@@ -848,6 +856,7 @@ public class Card {
         }
     }
 
+    //advances the cooldown of a card and triggers it if it reaches below 0
     public void advance(Player friendlyPlayer, Player enemyPlayer, int cardIndex, int cooldownAdvance){
         if(this._originalCooldown > 0) {
             this._cooldown = this._cooldown - cooldownAdvance;
@@ -863,6 +872,7 @@ public class Card {
 
     }
 
+    //triggers the cooldown power of a card if it reaches 0 or lower
     public void triggerCooldownEffect(Player friendlyPlayer, Player enemyPlayer, int cardIndex){
         this._cooldown--;
         if(this._cooldown <= 0) {
@@ -917,6 +927,7 @@ public class Card {
         }
     }
 
+    //triggers the effect of a card whenever it is moved on the hand
     public void triggerOnMove(Player friendlyPlayer, Card left, Card right, int cardIndex){
         switch(this._type){
             case SHIELD -> {
@@ -928,7 +939,7 @@ public class Card {
                 for(int i = 0; i < friendlyPlayer.getHandCardsCount(); i++){
                     if(i != cardIndex){
                         Card card = friendlyPlayer.getHandCard(i);
-                        if(card.getWidth() <= 20 && card.getType() != 0) count++;
+                        if(card.getWidth() <= 20 && card.getType() != Type.LOCK) count++;
                     }
                 }
                 setDamage(this._damage+3*count);
@@ -937,6 +948,7 @@ public class Card {
         }
     }
 
+    //triggers an effect of the card whenever it is bought.
     public void triggerOnBuyEffect(Player friendlyPlayer){
         friendlyPlayer.setEncounter(null);
         switch(this._type){
@@ -1021,6 +1033,7 @@ public class Card {
         }
     }
 
+    //triggers an effect of the card whenever it is sold
     public void triggerOnSellEffect(Player friendlyPlayer){
         switch(this._type){
             case SHOES -> {
@@ -1047,6 +1060,7 @@ public class Card {
         }
     }
 
+    //triggers an effect caused whenever another card triggers it's ability during a fight
     public void triggerAfterItemTriggersEffect(Player friendlyPlayer, Player enemyPlayer, int cardIndex){
         switch(this._type){
             case TEDDY -> {
@@ -1061,12 +1075,14 @@ public class Card {
         }
     }
 
+    //after a card is bought from the store it triggers an effect
     public void triggerAfterBuyingEffect(Card boughtCard){
         switch(this._type){
 
         }
     }
 
+    //triggers affect whenever you gain armor
     public void triggerOnGainingArmorEffect(){
         switch(this._type){
             case BRUSH -> {
@@ -1075,6 +1091,7 @@ public class Card {
         }
     }
 
+    //triggers an effect whenever you gain health
     public void triggerOnGainingHealthEffect(Player friendlyPlayer){
         switch(this._type){
             case HOUSE -> {
@@ -1083,6 +1100,7 @@ public class Card {
         }
     }
 
+    //draws the borders, the art, the stats, the description and cooldown animation of the card
     public String draw(int row, int height, int cooldownLinesCount, boolean hideIndex, boolean hideGold){
         String cooldown = Integer.toString(this._cooldown);
         String gold = Integer.toString(this._gold);
@@ -1159,6 +1177,7 @@ public class Card {
         return text;
     }
 
+    //draws the cooldown animation of the card
     public String drawCooldownLines(){
         String text = "";
         for(int i = 1; i < this._width; i++){

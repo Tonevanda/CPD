@@ -33,13 +33,13 @@ public class Server extends Communication{
     final static int NUM_PLAYERS = 2;
     final static String dbPath = "./database/database.json";
 
-    private final int TIMER_INTERVAL = 1000;
+    final static int TIMER_INTERVAL = 1000;
 
     private final int RANK_QUEUE_TIMER_INTERVAL = 5000;
 
     private final int DB_WRITE_TIMER_INTERVAL = 30000;
 
-    private final int DISCONNECT_TIMEOUT = 30;
+    final static int DISCONNECT_TIMEOUT = 30;
 
 
 
@@ -62,18 +62,23 @@ public class Server extends Communication{
         QUIT
     }
 
-
+    //Initialize the locks of the server
+    //First lock is for authentication and writing to database
+    //Second lock is for the simple queue
+    //Third lock is for the ranked queue
     public Server(int numLocks){
         for(int i = 0; i < numLocks; i++){
             this.locks.add(new ReentrantLock());
         }
     }
 
+    //Initializes the Server Class
     public static void main(String[] args) throws UnrecoverableKeyException, CertificateException, KeyStoreException, IOException, NoSuchAlgorithmException, KeyManagementException {
         Server server = new Server(3);
         server.startServer();
     }
-
+    //Hanldes the Client by putting him through a state machine, where he has to authenticate, go to menu, queue and then play game,
+    //In case of disconnections it is handled gracefully in the SocketException catch
     private void handleClient(Socket socket, BufferedReader reader, PrintWriter writer) throws IOException, InterruptedException{
         State state = State.AUTHENTICATION;
         Player player = null;
@@ -176,6 +181,7 @@ public class Server extends Communication{
 
     }
 
+    //Removes a player from a queue passed by argument
     private void removeFromQueue(String playerName, List<Player> queue){
         for(int i = 0; i < queue.size(); i++){
             if(playerName.equals(queue.get(i).getName())){
@@ -185,6 +191,7 @@ public class Server extends Communication{
         }
     }
 
+    //handles the authentication of the client
     private Player handleAuthentication(BufferedReader reader, PrintWriter writer) throws IOException {
         // Authenticate the client
         int rank = -1;
@@ -215,6 +222,7 @@ public class Server extends Communication{
 
     }
 
+    //handles the menu logic for the client
     private char handleMenu(BufferedReader reader, PrintWriter writer, Player player) throws IOException{
         // Ask the user which gamemode they want to play
         write(writer, "Which gamemode do you wish to play?");
@@ -240,6 +248,7 @@ public class Server extends Communication{
 
     }
 
+    //initializes the hashmap auths with the ones present in the database
     private void init_auths(){
         JSONArray db = loadJson();
 
@@ -249,15 +258,13 @@ public class Server extends Communication{
             this.auths.put(user_info.getString("username"),
                     new Player(user_info.getString("username"),
                             user_info.getString("password"),
-                            user_info.getInt("rank"),
-                            TIMER_INTERVAL,
-                            DISCONNECT_TIMEOUT,
-                            timerTask.getTime()
+                            user_info.getInt("rank")
                     ));
 
         }
     }
 
+    //main function where the server is called to start it's socket and connect to other clients
     private void startServer() throws KeyStoreException, IOException, UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException, KeyManagementException {
         init_auths();
         // Load server KeyStore
@@ -338,6 +345,7 @@ public class Server extends Communication{
         }
     }
 
+    //fetches a list of games that can be played in the ranked queue
     private List<List<Player>> getRankedPlayers(){
         List<List<Player>> games = new ArrayList<>();
 
@@ -380,6 +388,7 @@ public class Server extends Communication{
         return games;
     }
 
+    //Manages the ranked queue to see if any game is ready to be started and if it is it starts it.
     private void manageRanked(){
         locks.get(2).lock();
         if(this.rankedPlayers.size() >= NUM_PLAYERS) {
@@ -400,6 +409,7 @@ public class Server extends Communication{
         }
     }
 
+    //Manages the Simple queue to see if any game is ready to be started, if it is it starts it.
     private void manageSimple(){
         locks.get(1).lock();
         if(this.simplePlayers.size() >= NUM_PLAYERS) {
@@ -426,6 +436,7 @@ public class Server extends Communication{
         }
     }
 
+    //starts a game given a list of players and a gamemode
     private void startGame(List<Player> players, char gamemode){
 
         Thread.startVirtualThread(()->{
@@ -446,6 +457,7 @@ public class Server extends Communication{
     }
 
 
+    //updates the database with the information present in the auths hashmap
     private void updateDB(){
 
 
@@ -474,6 +486,7 @@ public class Server extends Communication{
         System.out.println("Updated Database");
     }
 
+    //authenticates the client by checking its parameters with the ones present in the auths hashmap
     private int authenticateClient(String name, String password, PrintWriter writer) throws NoSuchAlgorithmException {
         password = hashPassword(password);
         // Load the JSON file
@@ -508,8 +521,7 @@ public class Server extends Communication{
         }
         this.locks.getFirst().lock();
         if(!this.auths.containsKey(name)) {
-            Player newPlayer = new Player(name, password, 0,
-                    TIMER_INTERVAL, DISCONNECT_TIMEOUT, timerTask.getTime());
+            Player newPlayer = new Player(name, password, 0);
 
             this.auths.put(name, newPlayer);
         }
@@ -533,6 +545,7 @@ public class Server extends Communication{
         return 0;
     }
 
+    //creates a new user to store in the database.
     private JSONObject createUser(String username, String password){
         JSONObject user = new JSONObject();
         user.put("username", username);
@@ -541,6 +554,7 @@ public class Server extends Communication{
         return user;
     }
 
+    //hashes the password
     private String hashPassword(String password) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         md.update(password.getBytes());
@@ -552,6 +566,7 @@ public class Server extends Communication{
 
         return result;
     }
+    //loads the database to an array
     private JSONArray loadJson() {
         try {
             String content = new String(Files.readAllBytes(Paths.get(dbPath)));
@@ -563,6 +578,7 @@ public class Server extends Communication{
         }
     }
 
+    //stores the array into the database
     private void saveJson(JSONArray json) {
         try {
             Files.write(Paths.get(dbPath), json.toString().getBytes());

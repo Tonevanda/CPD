@@ -36,7 +36,8 @@ public class Client extends Communication{
         GAME,
         QUIT
     }
- 
+
+    //initializes the client class
     public static void main(String[] args) throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
 
         Client client = new Client();
@@ -44,6 +45,7 @@ public class Client extends Communication{
 
     }
 
+    //handles the client state machine and also starts it's socket and connection with server
     private void startClient() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, KeyManagementException {
 
         System.out.println(CLEAR_SCREEN.concat("Client started"));
@@ -166,6 +168,7 @@ public class Client extends Communication{
         }
     }
 
+    //gets the users username and password from the terminal
     private ArrayList<String> getCredentials(Scanner scanner, Reader terminalReader) throws IOException {
         ArrayList<String> credentials = new ArrayList<>();
         System.out.println("Enter your name: ");

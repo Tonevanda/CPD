@@ -39,9 +39,9 @@ public class Player{
     private boolean _hasBeenWrittenToDB = true;
 
 
-    private PrintWriter _writer;
+    private PrintWriter _writer = null;
 
-    private BufferedReader _reader;
+    private BufferedReader _reader = null;
 
     private String _serverState = "MENU";
 
@@ -83,15 +83,17 @@ public class Player{
 
     private int _daysRemaining = 6;
 
-    public Player(String name, String password, int rank, int timerInterval, int disconnectionTimeout, int currentTime){
+
+    //initializes the player class
+    public Player(String name, String password, int rank){
         this._name = name;
         this._password = password;
         this._rank = rank;
         this._previousRank = this._rank;
-        this._previousTimerTime = currentTime;
-        this._disconnectionTimeout = disconnectionTimeout;
+        this._previousTimerTime = -1;
+        this._disconnectionTimeout = Server.DISCONNECT_TIMEOUT;
         this._disconnectionTime = this._disconnectionTimeout;
-        this._timerInterval = timerInterval/1000;
+        this._timerInterval = Server.TIMER_INTERVAL/1000;
 
         setTimer(0);
 
@@ -112,6 +114,7 @@ public class Player{
 
 
 
+    //resets the timer information
     public void resetTimer(int time){
         this._previousTimerTime = time;
         this._disconnectionTime = this._disconnectionTimeout;
@@ -119,6 +122,7 @@ public class Player{
         this._timedOut = false;
     }
 
+    //checks if the time interval set on the timer has passed and if player is disconnected it will count the timeout.
     public boolean timeChanged(int currentTime) {
         if(this._previousTimerTime >= currentTime+this._timerInterval || this._previousTimerTime+this._timerInterval <= currentTime){
             this._previousTimerTime = currentTime;
@@ -150,6 +154,7 @@ public class Player{
 
     //GAME
 
+    //resets the player game info for when he starts a new game
     public void resetPlayerGameInfo(){
         this._health = 300;
         this._maxHealth = 300;
@@ -180,6 +185,7 @@ public class Player{
 
     }
 
+    //verifies if the user needs to update his database rank
     public boolean hasRankChanged(){return this._rank != this._previousRank;}
 
     public String getServerState(){return this._serverState;}
@@ -244,6 +250,7 @@ public class Player{
 
     public List<Card> getHandCards(){return this.hand;}
 
+    //updates the rank after the game has ended. Rank is updated based of the current rank that you have and the position that you finished in the game
     public void updateRank(int score, boolean isWinner){
 
         if(isWinner && score - this._rank/10 < 1){
@@ -254,14 +261,17 @@ public class Player{
         if(this._rank < 0) this._rank = 0;
     }
 
+    //activates a skill that is bought from the game store
     public void activateSkill(int index){
         this._skills.set(index, this._skills.get(index)+1);
     }
 
+    //deactivates a skill that is sold from the game store
     public void deactivateSkill(int index){
         this._skills.set(index, this._skills.get(index)-1);
     }
 
+    //verifies if the skill is active or not
     public boolean isSkillActive(Card.BookType bookType){
         return this._skills.get(bookType.ordinal()) > 0;
     }
@@ -288,6 +298,7 @@ public class Player{
 
     public void setGold(int gold){this._gold = gold;}
 
+    //sets the players speed gained during the fight and updates all cards affected by it
     public void setSpeed(int speed){
         if(_isFighting) {
             for (Card card : this.hand) {
@@ -299,13 +310,13 @@ public class Player{
         }
         this._speed = Math.min(speed, 100);
     }
-
+    //sets the players permanent speed and updates all cards affected by it
     public void setOriginalSpeed(int speed){
         speed = Math.max(Math.min(speed, 100), 0);
         setSpeed(this._speed + speed - this._originalSpeed);
         this._originalSpeed = speed;
     }
-
+    //sets the players strength gained during the fight and updates all cards affected by it
     public void setStrength(int strength){
         if(_isFighting) {
             for (Card card : this.hand) {
@@ -318,12 +329,12 @@ public class Player{
         this._strength = strength;
 
     }
-
+    //sets the players permanent strength and updates all cards affected by it
     public void setOriginalStrength(int strength){
         setStrength(this._strength + strength - this._originalStrength);
         this._originalStrength = strength;
     }
-
+    //sets the players health gained during the fight and updates all cards affected by it
     public void setHealth(int health){
         if(_isFighting && this._maxHealth-this._health > 0){
             for(Card card : this.hand){
@@ -332,7 +343,7 @@ public class Player{
         }
         this._health = Math.min(health, this._maxHealth);
     }
-
+    //sets the players armor buffing gained during the fight and updates all cards affected by it
     public void setArmorBuffing(int armorBuff){
         if(_isFighting){
             for(Card card : this.hand){
@@ -343,18 +354,18 @@ public class Player{
         }
         this._armorBuffing = armorBuff;
     }
-
+    //sets the players permanent armor buffing and updates all cards affected by it
     public void setOriginalArmorBuffing(int armorBuff){
         setArmorBuffing(this._armorBuffing+armorBuff-this._originalArmorBuffing);
         this._originalArmorBuffing = armorBuff;
     }
-
+    //sets the players permanent max health and updates all cards affected by it
     public void setMaxHealth(int health){
         this._maxHealth = Math.max(1, health);
         setHealth(Math.min(this._health, this._maxHealth));
 
     }
-
+    //sets the players armor gained during the fight and updates all cards affected by it
     public void setArmor(int armor){
         if(this._isFighting) {
             for (Card card : this.hand) {
@@ -363,14 +374,16 @@ public class Player{
         }
         this._armor = armor;
     }
-
+    //sets the players permanent armor and updates all cards affected by it
     public void setOriginalArmor(int armor){
         setArmor(this._armor + armor - this._originalArmor);
         this._originalArmor = armor;
     }
 
+    //clears the store
     public void resetStoreCards(){this.storeCards.clear();}
 
+    //resets all the temporary effects gained during the fight
     public void resetEffects(){
         _gold += 5;
         this._speed = this._originalSpeed;
@@ -385,12 +398,15 @@ public class Player{
 
     }
 
+    //adds a new card to the store
     public void addStoreCard(Card card){this.storeCards.add(card);}
 
+    //removes a card from the store
     public void removeStoreCard(int cardIndice){
         this.storeCards.remove(cardIndice);
     }
 
+    //removes a card from your hand
     public void removeHandCard(int cardIndice){
         this._handWidth -= this.hand.get(cardIndice).getWidth();
         this.hand.remove(cardIndice);
@@ -399,22 +415,25 @@ public class Player{
         }
     }
 
+    //increases all locks
     public void increaseLockCosts(){
         for(Card card : this.hand){
-            if(card.getType() == 0){
+            if(card.getType() == Card.Type.LOCK){
                 card.setGold(card.getGold()+2);
             }
         }
     }
 
+    //adds a new card to your hand
     public void addHandCard(Card card){
         int rand = card.getRand();
-        Card newCard = new Card(card.getType());
-        this.hand.add(new Card(card.getType()));
+        Card newCard = new Card(card.getType().ordinal());
+        this.hand.add(new Card(card.getType().ordinal()));
         this._handWidth += card.getWidth();
         if(rand != -1) newCard.randomize(rand);
     }
 
+    //swaps 2 cards positions from your hand
     public void swapCards(int cardIndice1, int cardIndice2){
 
         Card card1 = this.hand.get(cardIndice1);
@@ -422,6 +441,7 @@ public class Player{
         this.hand.set(cardIndice2, card1);
     }
 
+    //reorders the indices of the cards in the correct format and triggers any on moving effects that cards might have
     public void reorderCardIndices(){
         int cardIndice = 1;
         for(Card card : this.storeCards){
@@ -456,6 +476,7 @@ public class Player{
 
     }
 
+    //take damage
     public void takeDamage(int damage){
         if(this._armor > 0){
             this._armor = Math.max(0, this._armor - damage);
@@ -465,6 +486,7 @@ public class Player{
         }
     }
 
+    //trigger cards cooldown effects
     public void triggerCardCooldownEffects(Player enemyPlayer){
         for(int i = 0; i < this.hand.size(); i++){
             Card card = this.hand.get(i);
@@ -473,6 +495,7 @@ public class Player{
         }
     }
 
+    //draw the player's information on the terminal
     public String draw(boolean showStats){
         String text = "";
         text = text.concat(" |").concat(_name);

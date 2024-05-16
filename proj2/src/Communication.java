@@ -18,16 +18,20 @@ public abstract class Communication {
 
 
 
+    //writes to a writer given an encoding
     public void write(PrintWriter writer, String text, char encoding){ writer.println(encoding + text);}
 
+    //writes to a writer and uses the default encoding
     public void write(PrintWriter writer, String text){
         write(writer, text, NO_ENCODE);
     }
 
+    //flushes the writer
     public void flush(PrintWriter writer){
         writer.flush();
     }
 
+    //reads in a blocking fashion from the reader and returns a list where the first element is the encoding char and the second the content
     public List<String> read(BufferedReader reader)throws IOException{
         try {
             List<String> res = new ArrayList<>();
@@ -53,6 +57,8 @@ public abstract class Communication {
 
 
 
+    //reads in a nonblocking fashion where the first element of the returning list is the encoding char and the second element the actual content of the message.
+    //if the socket is disconnected it will throw a SocketException and it will gracefully catch it returning null
     public List<String> readNonBlocking(BufferedReader reader) throws IOException {
         try {
             String response = reader.readLine();

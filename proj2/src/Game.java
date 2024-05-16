@@ -50,6 +50,7 @@ public class Game extends Communication{
 
     private Player nonPlayingPlayer = null;
 
+    //initializes the class Game
     public Game(List<Player> players, List<Card> encounters, List<Card> items, char gamemode, MyTimerTask timerTask){
 
         this.encounters = encounters;
@@ -69,6 +70,7 @@ public class Game extends Communication{
         this._gamemode = gamemode;
     }
 
+    //runs the game putting it through a state machine
     public void run() throws IOException {
         System.out.println("Game started");
 
@@ -179,6 +181,7 @@ public class Game extends Communication{
         System.out.println("Game ended");
     }
 
+    //gets the user input and also verifies connection by verifying if socket is still open for connection.
     public String getInputAndVerifyConnection(Player player) throws IOException {
         if(!player.getDisconnected()) {
             List<String> response;
@@ -200,6 +203,7 @@ public class Game extends Communication{
         return null;
     }
 
+    //reconnects player back to the game after a disconnection
     public void reconnectPlayer(Player player){
         player.setAlreadyDisconnectedOnce(false);
         if(this.state == State.STORE){
@@ -209,6 +213,7 @@ public class Game extends Communication{
         }
     }
 
+    //reconnects a fight whenever at least one of the players disconnects from it
     public void reconnectFight(Player player1, Player player2){
         if(!player1.getDisconnected() && player1.getAlreadyDisconnectedOnce())
             reconnectPlayer(player1);
@@ -219,12 +224,14 @@ public class Game extends Communication{
 
     }
 
+    //handles the store phase logic part of the game
     public void storeHandler(Player currentPlayer, String userInput){
         userInput = userInput.toLowerCase();
         MoveType moveType = getMoveType(currentPlayer, userInput);
         makeMove(currentPlayer, moveType, userInput);
     }
 
+    //handles the fighting phase logic part of the game
     public void fightHandler(int time) throws IOException {
 
         for(int i = 0; i < this.fights.size(); i++){
@@ -252,6 +259,7 @@ public class Game extends Communication{
         }
     }
 
+    //makes a player leave the game, updating its rank and removing him from the list of game players.
     public void leaveGame(Player player){
 
         if(_gamemode == 'b'){
@@ -272,6 +280,7 @@ public class Game extends Communication{
         player.setInGame(false);
     }
 
+    //gets the move type defined by the user's input or an invalid move if the move is not valid
     public MoveType getMoveType(Player currentPlayer, String userInput){
         int maxIndice = currentPlayer.getStoreCardsSize() + currentPlayer.getHandCardsCount();
         if(userInput.length() > 5) {
@@ -351,7 +360,7 @@ public class Game extends Communication{
             return MoveType.BUY;
         }
         Card card = currentPlayer.getHandCard(cardIndice-currentPlayer.getStoreCardsSize());
-        if(card.getType() == 0){
+        if(card.getType() == Card.Type.LOCK){
             if(currentPlayer.getGold() < card.getGold()){
                 write(currentPlayer.getWriter(), "You don't have enough money to buy the lock!", '0');
                 flush(currentPlayer.getWriter());
@@ -361,6 +370,7 @@ public class Game extends Communication{
         return MoveType.SELL;
     }
 
+    //the user makes a move given an already processed user input
     public void makeMove(Player currentPlayer, MoveType moveType, String userInput){
         switch(moveType){
             case BUY ->{
@@ -384,7 +394,7 @@ public class Game extends Communication{
                 int cardIndice = Integer.parseInt(userInput)-currentPlayer.getStoreCardsSize()-1;
                 Card card = currentPlayer.getHandCard(cardIndice);
                 int goldOffset = 1;
-                if(card.getType() == 0) {
+                if(card.getType() == Card.Type.LOCK) {
                     goldOffset = -card.getGold();
                     currentPlayer.increaseLockCosts();
                 }
@@ -415,6 +425,7 @@ public class Game extends Communication{
     }
 
 
+    //refills the content of the store
     private void refillStore(Player player){
         player.resetStoreCards();
         int storeWidth = 1;
@@ -428,7 +439,7 @@ public class Game extends Communication{
                     Card card = this.encounters.get(storeIndex);
                     storeIndex++;
                     if (card.getWidth() + storeWidth <= MAX_WIDTH) {
-                        player.addStoreCard(new Card(card.getType()));
+                        player.addStoreCard(new Card(card.getType().ordinal()));
                         storeWidth += card.getWidth();
                         Collections.shuffle(this.encounters);
                         storeIndex = 0;
@@ -449,7 +460,7 @@ public class Game extends Communication{
                         Card card = this.items.get(storeIndex);
                         storeIndex++;
                         if (card.getWidth() + storeWidth <= MAX_WIDTH && (card.getGold() <= player.getGold() || player.getGold() == 0 || player.getStoreCardsSize() == 3)) {
-                            player.addStoreCard(new Card(card.getType()));
+                            player.addStoreCard(new Card(card.getType().ordinal()));
                             storeWidth += card.getWidth();
                             Collections.shuffle(this.items);
                             storeIndex = 0;
@@ -468,6 +479,7 @@ public class Game extends Communication{
         player.reorderCardIndices();
     }
 
+    //draws the fighting state
     public void drawFightState(List<Player> fight, int time){
         Player player1 = fight.getFirst();
         Player player2 = fight.getLast();
@@ -496,6 +508,8 @@ public class Game extends Communication{
         }
 
     }
+
+    //draws the store state
     public void drawStoreState(Player player, boolean hideIndex){
         String text = CLEAR_SCREEN;
         if(!hideIndex)
@@ -512,11 +526,12 @@ public class Game extends Communication{
         flush(player.getWriter());
     }
 
+    //draws a list of cards
     public String drawCards(Player player, List<Card> cards, boolean hideIndex, boolean hideGoldAndLocks){
         String text = "";
         boolean emptyCards = true;
         for(Card card : cards) {
-            if (card.getType() != 0 || !hideGoldAndLocks){
+            if (card.getType() != Card.Type.LOCK || !hideGoldAndLocks){
                 emptyCards = false;
                 break;
             }
@@ -527,7 +542,7 @@ public class Game extends Communication{
                 if (j == 0) text = text.concat(" ");
                 else text = text.concat("|");
                 for (Card card : cards) {
-                    if(!(hideGoldAndLocks && card.getType() == 0)) {
+                    if(!(hideGoldAndLocks && card.getType() == Card.Type.LOCK)) {
                         int cooldownLinesCount = -1;
                         if (player != null && card.getOrignalCooldown() > 0) {
                             cooldownLinesCount = (CARD_HEIGHT-2)-(card.getCooldown()*(CARD_HEIGHT-2)/(card.getOrignalCooldown()-(player.getSpeed()+card.getSpeed())*card.getOrignalCooldown()/100))-(j-1);
