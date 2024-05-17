@@ -15,6 +15,8 @@ public class Card {
         BED,
         CHOCOLATE,
         SHOPPING_CART,
+        CLAW,
+        NEWSPAPER,
         BOOK,
         SWORD,
         ANTEATER,
@@ -41,7 +43,11 @@ public class Card {
         MERCHANT,
         MOSQUITO,
         SENSEI,
-        SNAKE
+        SNAKE,
+        FORGER,
+        ALIEN,
+        HOTEL,
+        BASKET
     }
 
     public enum BookType{
@@ -56,7 +62,7 @@ public class Card {
 
     final static int BOOK_COUNT = BookType.values().length;
 
-    final static int ENCOUNTER_COUNT = 4;
+    final static int ENCOUNTER_COUNT = 8;
 
     final static int ITEMS_COUNT = 20;
 
@@ -390,12 +396,11 @@ public class Card {
                           |===  \\/____)_)||||
                           \\______|    | |||||
                               _/_|  | | =====
-                             (_/  \\_)_)    
+                             (_/  \\_)_)   \s
                           _____________,___
                          (    '  '        _)
                           (________________)""";
                 this._width = 22;
-                this._gold = 1;
                 this._isInstant = true;
                 power = "Bought: +10 MaxHealth and Heal 40";
             }
@@ -504,7 +509,6 @@ public class Card {
                         \s
                          \n \n \n""";
                 this._width = 20;
-                this._gold = 1;
                 power = "Sell: +10 MaxHealth";
             }
             case SHOPPING_CART -> {
@@ -543,15 +547,18 @@ public class Card {
                 power = "Heal 12. Advance 2s per ability triggered";
             }
             case BOOTS -> {
-                ascii = "       ________\n"+
-                        "    __(_____  <|\n" +
-                        "   (____ / <| <|\n" +
-                        "   (___ /  <| L`-------.\n" +
-                        "   (__ /   L`--------.  \\\n" +
-                        "   /  `.    ^^^^^ |   \\  |\n" +
-                        "  |     \\---------'    |/\n" +
-                        "  |______|____________/]\n" +
-                        "  [_____|`-.__________]\n \n";
+                ascii = """
+                               ________
+                            __(_____  <|
+                           (____ / <| <|
+                           (___ /  <| L`-------.
+                           (__ /   L`--------.  \\
+                           /  `.    ^^^^^ |   \\  |
+                          |     \\---------'    |/
+                          |______|____________/]
+                          [_____|`-.__________]
+                        \s
+                        """;
 
                 this._width = 27;
                 this._gold = 5;
@@ -640,15 +647,17 @@ public class Card {
                 power = "Heal 4. Whenever you heal, gain +1 Strength this fight";
             }
             case BOOK -> {
-                ascii = "      ,   ,   \n" +
-                        "     /////|   \n" +
-                        "    ///// |   \n" +
-                        "   |===|  |   \n" +
-                        "   |j  |  |   \n" +
-                        "   | g |  |   \n" +
-                        "   |  s| /   \n" +
-                        "   |===|/   \n" +
-                        "   '---'   ";
+                ascii = """
+                              ,   ,  \s
+                             /////|  \s
+                            ///// |  \s
+                           |===|  |  \s
+                           |j  |  |  \s
+                           | g |  |  \s
+                           |  s| /  \s
+                           |===|/  \s
+                           '---'   \
+                        """;
 
                 this._width = 15;
                 randomize(getRandomNumber());
@@ -738,15 +747,156 @@ public class Card {
                 power = "Learn a new skill";
             }
             case SNAKE -> {
-                ascii = "\n \n \n \n \n                       ____\n" +
-                        "   ____________________/ O  \\___/\n" +
-                        "  <_/_\\_/_\\_/_\\_/_\\_/_______/   \\\n \n \n \n \n ";
+                ascii = """
+
+                        \s
+                        \s
+                        \s
+                        \s
+                                               ____
+                           ____________________/ O  \\___/
+                          <_/_\\_/_\\_/_\\_/_\\_/_______/   \\
+                        \s
+                        \s
+                        \s
+                        \s
+                        \s""";
                 this._width = 35;
                 this._isInstant = true;
                 this._health = 34;
                 this._speed = 16;
                 this._armor = 3;
                 power = "Reward: +2$";
+            }
+            case FORGER -> {
+                ascii = """
+
+                        \s
+                        \s
+                                   .-------..___
+                                  '-._     :_.-'
+                                   .- ) _ ( --.
+                                  :  '-' '-'  ;.
+                                 /'-.._____.-' |
+                                 |   |     \\   |
+                                 \\   |     /   \\
+                                 |   \\     )_.-'
+                                 '-._/__..-'
+                        \s
+                        \s""";
+
+                this._width = 35;
+                this._isInstant = true;
+                power = "Heal and search for any last gear";
+            }
+            case CLAW -> {
+                ascii = """
+
+                        \s
+                             _.-  -._
+                            (O_.--._O)
+                            //     \\\\
+                        .-.//       \\\\.-.
+                        |O)/         \\(O|
+                        | `-.        .-`|
+                         \\  |       |  /
+                          \\ |       | /
+                           \\|       |/
+                            `        ` \s
+                        \s
+                        \s""";
+
+
+                this._width = 18;
+                this._gold = 1;
+                this._isInstant = true;
+                power = "Bought: Reroll";
+            }
+            case NEWSPAPER -> {
+                ascii = """
+
+                        \s
+                        \s
+                         __________
+                        |DAILY NEWS|
+                        |&&& ======|
+                        |=== ======|
+                        |=== == %%$|
+                        |[_] ======|
+                        |=== ===!##|
+                        |__________|
+                        \s
+                        \s
+                        \s""";
+
+                this._width = 13;
+                this._isInstant = true;
+                power = "Bought: Exit";
+            }
+            case ALIEN -> {
+                ascii = """
+
+                        \s
+                                        __ __
+                                     .-',,^,,'.
+                                    / \\(0)(0)/ \\
+                                    )/( ,_"_,)\\(
+                                    `  >-`~(   '\s
+                                  _N\\ |(`\\ |___
+                                  \\' |/ \\ \\/_-,)
+                                   '.(  \\`\\_<
+                                     \\ _\\|
+                                       | |_\\_
+                                       \\_,_>-'
+                        \s""";
+
+                this._width = 35;
+                this._isInstant = true;
+                power = "Is it Good or is it Evil";
+            }
+            case HOTEL -> {
+                ascii = """
+                                              [[__]
+                             _________________||  |___
+                            /^^^^^^,-.^^^^^^^^\\|__|^^^\\
+                           /     ,',-.`.               \\
+                          /    ,','   `.`.     ,-""\"-.  \\
+                         /___,','__   __`.`.__/_,"T"._\\__\\
+                          |='-'||/\\| |^^||`-`=|_|_|_|_|=|
+                          |= = ||)(| |__||= ==|_|_|_|_|=|
+                          |= ==|""\"" ""\""| = =____= =_==|
+                          |== =| __   __ |= =| [] | |^|=|
+                          |= ==||/\\| |==||== |   o|=|_| |
+                          |== =||)(| |  || = | == | == =|
+                          |= ==|""\"" ""\""|== |____|= = =|
+                          ""\"""|_________|""\"'====`""\"""\"\
+                        """;
+
+                this._width = 35;
+                this._isInstant = true;
+                power = "Come here to rest and get Stronger";
+            }
+            case BASKET -> {
+                ascii = """
+                                             \\      /
+                                              \\\\   //
+                                       _______ )\\-/(
+                                      (M==M=M=)/e e\\
+                                  .-'"-\\=N==N/( =Y= )
+                              .-'(___.-'\\M=M/ /`---'\\
+                             (______(____)=(_/ /___\\ \\_
+                             (M==M=M==M=M==M'''M=M=```M)
+                              \\=N=N==N=N==N=N==N=N==N=/
+                               \\M==M=M==M=M==M==M==M=/
+                                \\N=N==N=N==N=N==N=N=/
+                                 \\M==M==M=M==M=M==M/
+                                  `---------------'
+                        \s
+                        """;
+
+                this._width = 35;
+                this._isInstant = true;
+                power = "There's a prize inside";
             }
         }
 
@@ -826,16 +976,16 @@ public class Card {
                 this._description.clear();
                 switch(this._rand){
                     case 0 -> {
-                        this._gold = 1;
+                        this._gold = 0;
                         fillDescription("Bought: +20 maxHealth");
                     }
                     case 1 ->{
-                        this._gold = 5;
-                        fillDescription("Bought: +50 maxHealth");
+                        this._gold = 0;
+                        fillDescription("Bought: +2 Strength");
                     }
                     case 2 ->{
-                        this._gold = 1;
-                        fillDescription("Bought: +2 Strength");
+                        this._gold = 5;
+                        fillDescription("Bought: +50 maxHealth");
                     }
                     case 3 ->{
                         this._gold = 5;
@@ -1051,6 +1201,7 @@ public class Card {
 
     //triggers an effect of the card whenever it is bought.
     public void triggerOnBuyEffect(Player friendlyPlayer){
+        Type previousEncounter = friendlyPlayer.getEncounter();
         friendlyPlayer.setEncounter(null);
         switch(this._type){
             case AXE -> {
@@ -1112,7 +1263,7 @@ public class Card {
             }
             case SHOPPING_CART -> {
                 while(friendlyPlayer.getHandWidth()+this._width <= MAX_WIDTH){
-                    friendlyPlayer.addHandCard(new Card(20));
+                    friendlyPlayer.addHandCard(new Card(Type.CHOCOLATE.ordinal()));
                 }
             }
             case BOOTS -> {
@@ -1123,6 +1274,9 @@ public class Card {
             case TREASURE -> {
                 friendlyPlayer.setGold(friendlyPlayer.getGold()+this._armor);
             }
+            case CLAW -> {
+                friendlyPlayer.setEncounter(previousEncounter);
+            }
             case BOOK -> {
                 friendlyPlayer.activateSkill(this._rand);
                 switch(BookType.values()[this._rand]){
@@ -1131,7 +1285,7 @@ public class Card {
                     }
                 }
             }
-            case MERCHANT, MOSQUITO, SENSEI, SNAKE -> {
+            case MERCHANT, MOSQUITO, SENSEI, SNAKE, FORGER, ALIEN, HOTEL, BASKET -> {
                 friendlyPlayer.setEncounter(this._type);
             }
 

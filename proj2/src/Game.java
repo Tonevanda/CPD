@@ -454,7 +454,7 @@ public class Game extends Communication{
             case SELL -> {
                 int cardIndice = Integer.parseInt(userInput)-currentPlayer.getStoreCardsSize()-1;
                 Card card = currentPlayer.getHandCard(cardIndice);
-                int goldOffset = 1;
+                int goldOffset = card.getGold();
                 if(card.getType() == Card.Type.LOCK) {
                     goldOffset = -card.getGold();
                     currentPlayer.increaseLockCosts();
@@ -584,6 +584,40 @@ public class Game extends Communication{
                     fight.add(snake);
                     this.fights.add(fight);
                     player.setTimer(-2);
+                }
+                case FORGER -> {
+                    Card claw = new Card(Card.Type.CLAW.ordinal());
+                    player.addStoreCard(claw);
+                    storeWidth += claw.getWidth();
+                    Card bandage = new Card(Card.Type.BANDAID.ordinal());
+                    player.addStoreCard(bandage);
+                    storeWidth += bandage.getWidth();
+                    Card newspaper = new Card(Card.Type.NEWSPAPER.ordinal());
+                    player.addStoreCard(newspaper);
+                    storeWidth += newspaper.getWidth();
+                    Collections.shuffle(this.items);
+                    while (storeWidth <= MAX_WIDTH - MIN_CARD_WIDTH && storeIndex < items.size()) {
+                        Card card = this.items.get(storeIndex);
+                        storeIndex++;
+                        if (card.getWidth() + storeWidth <= MAX_WIDTH) {
+                            player.addStoreCard(new Card(card.getType().ordinal()));
+                            break;
+                        }
+                    }
+                }
+                case ALIEN -> {
+                    player.addStoreCard(new Card(Card.Type.CAT.ordinal()));
+                    player.addStoreCard(new Card(Card.Type.SCROLL.ordinal()));
+                }
+                case HOTEL -> {
+                    Random random = new Random();
+                    player.addStoreCard(new Card(Card.Type.BED.ordinal(), Math.abs(random.nextInt()) % 2));
+                    player.addStoreCard(new Card(Card.Type.BED.ordinal(), (Math.abs(random.nextInt()) % 3)+2));
+                }
+                case BASKET -> {
+                    player.addStoreCard(new Card(Card.Type.CHOCOLATE.ordinal()));
+                    player.addStoreCard(new Card(Card.Type.SHOPPING_CART.ordinal()));
+                    player.addStoreCard(new Card(Card.Type.COIN.ordinal()));
                 }
 
             }
