@@ -7,48 +7,25 @@ import java.util.Timer;
 public class Player{
 
     //TIMER
-
     private int _time = 0;
-
     private int _previousTimerTime = 0;
-
     private int _timerInterval;
-
     private int _disconnectionTimeout;
-
     private int _disconnectionTime;
-
     private boolean _timedOut = true;
-
-
-
-
     private boolean _isDisconnected = true;
-
     private boolean _alreadyDisconnectedOnce = false;
-
     //GAME
     private final String _name;
-
     private final String _password;
-
     private int _rank;
-
     private int _previousRank;
-
     private boolean _hasBeenWrittenToDB = true;
-
-
     private PrintWriter _writer = null;
-
     private BufferedReader _reader = null;
-
     private String _serverState = "MENU";
-
     private List<Card> hand = new ArrayList<>();
-
     private List<Card> storeCards = new ArrayList<>();
-
     private int _handWidth = 1;
 
     private int _maxHealth = 300;

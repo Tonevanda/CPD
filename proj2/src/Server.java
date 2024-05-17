@@ -160,13 +160,19 @@ public class Server extends Communication{
                         System.out.println("Client: ".concat(player.getName()).concat(" has timed out"));
                         if(gamemode == 'a' || gamemode == 'i'){
                             this.locks.get(1).lock();
-                            removeFromQueue(player.getName(), this.simplePlayers);
-                            this.locks.get(1).unlock();
+                            try{
+                                removeFromQueue(player.getName(), this.simplePlayers);
+                            } finally {
+                                this.locks.get(1).unlock();
+                            }
                         }
                         if(gamemode == 'b' || gamemode == 'i'){
                             this.locks.get(2).lock();
-                            removeFromQueue(player.getName(), this.rankedPlayers);
-                            this.locks.get(2).unlock();
+                            try {
+                                removeFromQueue(player.getName(), this.rankedPlayers);
+                            } finally {
+                                this.locks.get(2).unlock();
+                            }
                         }
 
                         socket.close();
@@ -396,20 +402,20 @@ public class Server extends Communication{
     //Manages the ranked queue to see if any game is ready to be started and if it is it starts it.
     private void manageRanked(){
         locks.get(2).lock();
-        if(this.rankedPlayers.size() >= NUM_PLAYERS) {
-            System.out.println("Managing ranked game");
+        try{
+            if(this.rankedPlayers.size() >= NUM_PLAYERS) {
+                System.out.println("Managing ranked game");
 
-            List<List<Player>> games = getRankedPlayers();
+                List<List<Player>> games = getRankedPlayers();
 
-            locks.get(2).unlock();
-            if(!games.isEmpty()){
-                for(List<Player> gamePlayers : games){
-                    startGame(gamePlayers, 'b');
+                //locks.get(2).unlock();
+                if(!games.isEmpty()){
+                    for(List<Player> gamePlayers : games){
+                        startGame(gamePlayers, 'b');
+                    }
                 }
-
             }
-        }
-        else{
+        } finally{
             locks.get(2).unlock();
         }
     }
@@ -417,28 +423,31 @@ public class Server extends Communication{
     //Manages the Simple queue to see if any game is ready to be started, if it is it starts it.
     private void manageSimple(){
         locks.get(1).lock();
-        if(this.simplePlayers.size() >= NUM_PLAYERS) {
-            System.out.println("Managing simple game");
-            // Get the first NUM_PLAYERS players
-            List<Player> gamePlayers = new ArrayList<>();
-            int playerCount = NUM_PLAYERS;
-            for (int i = 0; i < Math.min(playerCount, this.simplePlayers.size()); i++) {
-                Player player = this.simplePlayers.get(i);
-                if(!player.getDisconnected()) {
-                    gamePlayers.add(this.simplePlayers.get(i));
-                    this.simplePlayers.remove(i);
-                    i--;
-                }
-                else playerCount++;
-            }
+        try{
 
+            if(this.simplePlayers.size() >= NUM_PLAYERS) {
+                System.out.println("Managing simple game");
+                // Get the first NUM_PLAYERS players
+                List<Player> gamePlayers = new ArrayList<>();
+                int playerCount = NUM_PLAYERS;
+                for (int i = 0; i < Math.min(playerCount, this.simplePlayers.size()); i++) {
+                    Player player = this.simplePlayers.get(i);
+                    if(!player.getDisconnected()) {
+                        gamePlayers.add(this.simplePlayers.get(i));
+                        this.simplePlayers.remove(i);
+                        i--;
+                    }
+                    else playerCount++;
+                }
+                //locks.get(1).unlock();
+                // Start the game
+                startGame(gamePlayers, 'a');
+            }
+        } finally {
             locks.get(1).unlock();
-            // Start the game
-            startGame(gamePlayers, 'a');
         }
-        else{
-            locks.get(1).unlock();
-        }
+
+
     }
 
     //starts a game given a list of players and a gamemode
@@ -464,28 +473,30 @@ public class Server extends Communication{
 
     //updates the database with the information present in the auths hashmap
     private void updateDB(){
-
-
         locks.getFirst().lock();
-        JSONArray db = loadJson();
-        for (int i = 0; i < db.length(); i++){
-            JSONObject user_info = db.getJSONObject(i);
-            Player player = this.auths.get(user_info.getString("username"));
-            player.setHasBeenWrittenToDB(true);
-            if(player.hasRankChanged()) {
-                user_info.put("rank", player.getRank());
+        try {
+
+            JSONArray db = loadJson();
+            for (int i = 0; i < db.length(); i++){
+                JSONObject user_info = db.getJSONObject(i);
+                Player player = this.auths.get(user_info.getString("username"));
+                player.setHasBeenWrittenToDB(true);
+                if(player.hasRankChanged()) {
+                    user_info.put("rank", player.getRank());
+                }
             }
-        }
-        for(Player player : this.auths.values()){
-            if(!player.hasBeenWrittenToDB()){
-                JSONObject user = createUser(player.getName(), player.getPassword());
-                db.put(user);
+            for(Player player : this.auths.values()){
+                if(!player.hasBeenWrittenToDB()){
+                    JSONObject user = createUser(player.getName(), player.getPassword());
+                    db.put(user);
+                }
+                player.setHasBeenWrittenToDB(false);
+                player.setPreviousRank();
             }
-            player.setHasBeenWrittenToDB(false);
-            player.setPreviousRank();
+            saveJson(db);
+        } finally {
+            locks.getFirst().unlock();
         }
-        saveJson(db);
-        this.locks.getFirst().unlock();
 
 
         System.out.println("Updated Database");
@@ -495,8 +506,9 @@ public class Server extends Communication{
     private int authenticateClient(String name, String password, PrintWriter writer) throws NoSuchAlgorithmException {
         password = hashPassword(password);
         // Load the JSON file
+        this.locks.getFirst().lock();
         try {
-            this.locks.getFirst().lock();
+
             if (this.auths.containsKey(name)) {
                 Player player = this.auths.get(name);
                 if (player.getPassword().equals(password)) {
@@ -529,7 +541,7 @@ public class Server extends Communication{
             this.auths.put(name, newPlayer);
             write(writer, "New account has been created!", '0');
             flush(writer);
-        }finally {
+        } finally {
             this.locks.getFirst().unlock();
         }
 
