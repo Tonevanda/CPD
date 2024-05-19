@@ -54,7 +54,7 @@ public class Client extends Communication{
 
         // Load client TrustStore
         KeyStore trustStore = KeyStore.getInstance("JKS");
-        trustStore.load(new FileInputStream("./certificates/servertruststore.jks"), "password".toCharArray());
+        trustStore.load(new FileInputStream("../certificates/servertruststore.jks"), "password".toCharArray());
 
         // Initialize TrustManagerFactory with the TrustStore
         TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
@@ -69,6 +69,7 @@ public class Client extends Communication{
 
         try (SSLSocket socket = (SSLSocket) socketFactory.createSocket(hostname, port)) {
             socket.setSoTimeout(0);
+
             // Write information to server
             OutputStream output = socket.getOutputStream();
             PrintWriter writer = new PrintWriter(output, true);

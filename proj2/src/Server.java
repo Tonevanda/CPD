@@ -31,7 +31,7 @@ public class Server extends Communication{
 
     final int port = 8080;
     final static int NUM_PLAYERS = 2;
-    final static String dbPath = "./database/database.json";
+    final static String dbPath = "../database/database.json";
 
     final static int TIMER_INTERVAL = 1000;
 
@@ -79,7 +79,7 @@ public class Server extends Communication{
         Server server = new Server(3);
         server.startServer();
     }
-    //Hanldes the Client by putting him through a state machine, where he has to authenticate, go to menu, queue and then play game,
+    //Handles the Client by putting him through a state machine, where he has to authenticate, go to menu, queue and then play game,
     //In case of disconnections it is handled gracefully in the SocketException catch
     private void handleClient(Socket socket, BufferedReader reader, PrintWriter writer) throws IOException, InterruptedException{
         State state = State.AUTHENTICATION;
@@ -272,12 +272,12 @@ public class Server extends Communication{
         }
     }
 
-    //main function where the server is called to start it's socket and connect to other clients
+    //main function where the server is called to start its socket and connect to other clients
     private void startServer() throws KeyStoreException, IOException, UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException, KeyManagementException {
         init_auths();
         // Load server KeyStore
         KeyStore keyStore = KeyStore.getInstance("JKS");
-        keyStore.load(new FileInputStream("certificates/serverkeystore.jks"), "password".toCharArray());
+        keyStore.load(new FileInputStream("../certificates/serverkeystore.jks"), "password".toCharArray());
 
         // Initialize KeyManagerFactory with the KeyStore
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
@@ -402,33 +402,39 @@ public class Server extends Communication{
     //Manages the ranked queue to see if any game is ready to be started and if it is it starts it.
     private void manageRanked(){
         locks.get(2).lock();
+        List<List<Player>> games = new ArrayList<>();
+        boolean shouldStart = false;
         try{
             if(this.rankedPlayers.size() >= NUM_PLAYERS) {
                 System.out.println("Managing ranked game");
 
-                List<List<Player>> games = getRankedPlayers();
-
+                games = getRankedPlayers();
+                shouldStart = true;
                 //locks.get(2).unlock();
-                if(!games.isEmpty()){
-                    for(List<Player> gamePlayers : games){
-                        startGame(gamePlayers, 'b');
-                    }
-                }
             }
         } finally{
             locks.get(2).unlock();
+        }
+        if (shouldStart) {
+            if (!games.isEmpty()) {
+                for (List<Player> gamePlayers : games) {
+                    startGame(gamePlayers, 'b');
+                }
+            }
         }
     }
 
     //Manages the Simple queue to see if any game is ready to be started, if it is it starts it.
     private void manageSimple(){
         locks.get(1).lock();
-        try{
+        List<Player> gamePlayers = new ArrayList<>();
+        boolean shouldStart = false;
 
+        try{
             if(this.simplePlayers.size() >= NUM_PLAYERS) {
                 System.out.println("Managing simple game");
                 // Get the first NUM_PLAYERS players
-                List<Player> gamePlayers = new ArrayList<>();
+
                 int playerCount = NUM_PLAYERS;
                 for (int i = 0; i < Math.min(playerCount, this.simplePlayers.size()); i++) {
                     Player player = this.simplePlayers.get(i);
@@ -439,15 +445,15 @@ public class Server extends Communication{
                     }
                     else playerCount++;
                 }
-                //locks.get(1).unlock();
-                // Start the game
-                startGame(gamePlayers, 'a');
+                shouldStart = true;
             }
         } finally {
             locks.get(1).unlock();
+
         }
-
-
+        if(shouldStart){
+            startGame(gamePlayers, 'a');
+        }
     }
 
     //starts a game given a list of players and a gamemode
@@ -473,6 +479,7 @@ public class Server extends Communication{
 
     //updates the database with the information present in the auths hashmap
     private void updateDB(){
+        System.out.println("Updating Database");
         locks.getFirst().lock();
         try {
 
@@ -494,12 +501,13 @@ public class Server extends Communication{
                 player.setPreviousRank();
             }
             saveJson(db);
+            System.out.println("Updated Database");
         } finally {
             locks.getFirst().unlock();
         }
 
 
-        System.out.println("Updated Database");
+
     }
 
     //authenticates the client by checking its parameters with the ones present in the auths hashmap
